@@ -1,0 +1,9 @@
+{
+  "name": "Block Âm Dương Việt Nam",
+  "content_in_root": true,
+  "render_readme": true,
+  "country": ["VN"],
+  "homeassistant": "2024.1.0",
+  "hacs": "1.0.0",
+  "filename": "lich-block-am-duong-viet-nam.js"
+}
