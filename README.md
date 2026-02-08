@@ -48,4 +48,17 @@ quote_entity: sensor.daily_quote  # optional
  ```
 10. Restart Home Assistant
 11. Clear browser cache (Ctrl + F5)
+Cài qua HACS
+   - Vào HACS
+   - Vào 3 Chấm góc trên bên phải
+   - Chọn **Custom repositories**
+     
+     <img width="303" height="437" alt="image" src="https://github.com/user-attachments/assets/71489d94-bc79-4f12-9941-9c1ce56152e8" />
 
+   - Điền `https://github.com/khaisilk1910/lich-block-am-duong-viet-nam` và chọn Dashboard và nhấn Add
+     
+     <img width="433" height="487" alt="image" src="https://github.com/user-attachments/assets/755a49cb-58a6-481d-b6ad-650017615e86" />
+
+   - Quay lại HACS và nhập ô tìm kiếm `Lịch Block Âm Dương Việt Nam` và Tải về
+     
+     <img width="1658" height="326" alt="image" src="https://github.com/user-attachments/assets/70917f4b-5ff1-4bd6-b4f9-6e1e9acd4d86" />
