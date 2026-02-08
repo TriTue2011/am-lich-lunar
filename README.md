@@ -57,8 +57,10 @@ Cài qua HACS
 
    - Điền `https://github.com/TriTue2011/am-lich-lunar` và chọn Dashboard và nhấn Add
      
-     <img width="433" height="487" alt="image" src="https://github.com/user-attachments/assets/755a49cb-58a6-481d-b6ad-650017615e86" />
+     <img width="572" height="459" alt="image" src="https://github.com/user-attachments/assets/de9880d7-6652-49ae-85bf-7b73c59e2cdc" />
 
-   - Quay lại HACS và nhập ô tìm kiếm `Lịch Block Âm Dương Việt Nam` và Tải về
+
+   - Quay lại HACS và nhập ô tìm kiếm `Block Âm Dương Việt Nam` và Tải về
      
-     <img width="1658" height="326" alt="image" src="https://github.com/user-attachments/assets/70917f4b-5ff1-4bd6-b4f9-6e1e9acd4d86" />
+     <img width="733" height="236" alt="image" src="https://github.com/user-attachments/assets/54c9dc47-6606-4f58-81b6-7bf23be64a34" />
+
