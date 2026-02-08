@@ -1,9 +1,10 @@
-// Lịch Âm Dương Việt Nam - Enhanced Version
+// Lịch Âm Dương Việt Nam - Enhanced Version (FIXED)
 // Phát triển dựa trên code của Nguyễn Tiến Khải
-// Version: 2.1 - February 2026 - FIXED DISPLAY BUG
-// Cải tiến: Background opacity, Toggle "Chọn ngày xem" giống "Xem thêm", Sửa lỗi hiển thị
+// Version: 2.2 - February 2026 - FIX Giờ Can-Chi theo giờ thực tế
+// Fix: Giờ Can-Chi lấy theo GIỜ HIỆN TẠI (không cần phút) + Can giờ phụ thuộc Can ngày của NGÀY ĐANG XEM
+// Fix: Popup + UI đồng bộ, auto refresh mỗi phút để qua giờ mới tự cập nhật
 
-(function(){
+(function () {
   'use strict';
 
   // ===== LUNAR CALENDAR DATA =====
@@ -90,6 +91,76 @@
 
   const NGAY_LE_AL = ["1/1", "15/1", "3/3", "10/3", "15/4", "5/5", "7/7", "15/7", "15/8", "9/9", "10/10", "15/10", "23/12"];
   const NGAY_LE_AL_STRING = ["Tết Nguyên Đán", "Tết Nguyên Tiêu", "Tết Hàn Thực, Thanh Minh", "Giỗ tổ Hùng Vương", "Lễ Phật Đản", "Tết Đoan Ngọ", "Lễ Thất Tịch", "Lễ Vu Lan", "Tết Trung Thu", "Tết Trùng Cửu", "Tết Trùng Thập", "Tết Hạ Nguyên", "Ông Táo Về Trời"];
+
+  // ===== BỔ SUNG DỮ LIỆU CHO POPUP =====
+  const TIET_KHI = [
+    "Xuân Phân", "Thanh Minh", "Cốc Vũ", "Lập Hạ", "Tiểu Mãn", "Mang Chủng",
+    "Hạ Chí", "Tiểu Thử", "Đại Thử", "Lập Thu", "Xử Thử", "Bạch Lộ",
+    "Thu Phân", "Hàn Lộ", "Sương Giáng", "Lập Đông", "Tiểu Tuyết", "Đại Tuyết",
+    "Đông Chí", "Tiểu Hàn", "Đại Hàn", "Lập Xuân", "Vũ Thủy", "Kinh Trập"
+  ];
+
+  const CHI_EMOJI = ["🐭", "🐂", "🐯", "🐱", "🐲", "🐍", "🐴", "🐐", "🐵", "🐔", "🐶", "🐷"];
+
+  const THAP_NHI_TRUC = {
+    "Kiến": { tot: "Khai trương, nhậm chức, cưới hỏi, trồng cây, đền ơn đáp nghĩa. Xuất hành đặng lợi, sinh con rất tốt.", xau: "Động thổ, chôn cất, đào giếng, lợp nhà." },
+    "Trừ": { tot: "Động đất, ban nền đắp nền, thờ cúng Táo Thần, cầu thầy chữa bệnh bằng cách mổ xẻ hay châm cứu, bốc thuốc, xả tang, khởi công làm lò nhuộm lò gốm.", xau: "Đẻ con nhằm ngày này khó nuôi. Nam nhân kỵ khởi đầu uống thuốc." },
+    "Mãn": { tot: "Xuất hành, đi đường thủy, cho vay, thu nợ, mua hàng, bán hàng, nhập kho, đặt táng, kê gác, sửa chữa, lắp đặt máy, thuê thêm người, vào học kỹ nghệ.", xau: "Lên quan lãnh chức, uống thuốc, vào làm hành chính, dâng nộp đơn từ." },
+    "Bình": { tot: "Nhập vào kho, đặt táng, gắn cửa, kê gác, đặt yên chỗ máy, sửa chữa làm tàu, khai trương tàu thuyền, các việc bồi đắp thêm. Lót giường đóng giường, thừa kế tước phong hay thừa kế sự nghiệp.", xau: "Không có" },
+    "Định": { tot: "Động thổ, san nền, đắp nền, làm hay sửa phòng bếp, lắp đặt máy móc, nhập học, làm lễ cầu thân, nộp đơn dâng sớ, sửa hay làm tàu thuyền, khai trương tàu thuyền, khởi công làm lò. Mua nuôi thêm súc vật.", xau: "Thưa kiện, xuất hành đi xa." },
+    "Chấp": { tot: "Lập khế ước, giao dịch, động thổ san nền, cầu thầy chữa bệnh, đi săn thú cá, tìm bắt trộm cướp. Xây đắp nền-tường.", xau: "Dời nhà, đi chơi xa, mở cửa hiệu buôn bán, xuất tiền của." },
+    "Phá": { tot: "Trị bệnh, phá dỡ, dọn dẹp.", xau: "Là ngày Nhật Nguyệt tương xung. Muôn việc làm vào ngày này đều bất lợi." },
+    "Nguy": { tot: "Không nên làm gì.", xau: "Nói đến Trực Nguy là nói đến sự nguy hiểm, suy thoái. Ngày có trực Nguy là ngày xấu, tiến hành muôn việc đều hung." },
+    "Thành": { tot: "Lập khế ước, giao dịch, cho vay, thu nợ, mua hàng, bán hàng, xuất hành, đi tàu thuyền, khởi tạo, động thổ, san nền đắp nền, gắn cửa, đặt táng, kê gác, dựng xây kho vựa, làm hay sửa chữa phòng bếp, thờ phụng Táo Thần, lắp đặt máy móc, gặt lúa, đào ao giếng, tháo nước, cầu thầy chữa bệnh, mua gia súc, các việc trong vụ chăn nuôi, nhập học, làm lễ cầu thân, cưới gả, kết hôn, thuê người, nộp đơn dâng sớ, học kỹ nghệ, làm hoặc sửa tàu thuyền, khai trương tàu thuyền, vẽ tranh, tu sửa cây cối.", xau: "Kiện tụng, tranh chấp." },
+    "Thu": { tot: "Cấy lúa, gặt lúa, mua trâu, nuôi tằm, đi săn thú cá, tu sửa cây cối. Động thổ, san nền đắp nền, nữ nhân khởi ngày uống thuốc chưa bệnh, lên quan lãnh chức, thừa kế chức tước hay sự nghiệp, vào làm hành chính, nộp đơn dâng sớ.", xau: "Bắt đầu công việc mới, kỵ đi du lịch, kỵ tang lễ." },
+    "Khai": { tot: "Xuất hành, đi tàu thuyền, khởi tạo, động thổ, san nền đắp nền, dựng xây kho vựa, làm hay sửa phòng bếp, thờ cúng Táo Thần, đóng giường lót giường, may áo, lắp đặt cỗ máy dệt hay các loại máy, cấy lúa gặt lúa, đào ao giếng, tháo nước, các việc trong vụ chăn nuôi, mở thông hào rãnh, cầu thầy chữa bệnh, bốc thuốc, uống thuốc, mua trâu, làm rượu, nhập học, học kỹ nghệ, vẽ tranh, tu sửa cây cối.", xau: "An táng, chôn cất." },
+    "Bế": { tot: "Xây đắp tường, đặt táng, gắn cửa, kê gác, làm cầu. Khởi công lò nhuộm lò gốm, uống thuốc, trị bệnh (nhưng chớ trị bệnh mắt), tu sửa cây cối.", xau: "Lên quan nhậm chức, thừa kế chức tước hay sự nghiệp, nhập học, chữa bệnh mắt." }
+  };
+
+  const EMOJI_TRUC = {
+    "Kiến": "🚪", "Trừ": "✂️", "Mãn": "🌕", "Bình": "⚖️",
+    "Định": "📜", "Chấp": "✍️", "Phá": "💥", "Nguy": "⚠️",
+    "Thành": "🏰", "Thu": "🌾", "Khai": "🔑", "Bế": "🔒"
+  };
+
+  const EMOJI_SAO = {
+    "Giác": "🐉", "Cang": "🦄", "Đê": "🏞️", "Phòng": "🏠", "Tâm": "❤️", "Vĩ": "🦚", "Cơ": "🧵", "Đẩu": "🛶",
+    "Ngưu": "🐂", "Nữ": "👩", "Hư": "🌫️", "Nguy": "⚠️", "Thất": "7️⃣", "Bích": "💎", "Khuê": "📚", "Lâu": "🏯",
+    "Vị": "🍽️", "Mão": "🐇", "Tất": "🧦", "Chủy": "👄", "Sâm": "🌱", "Tỉnh": "💧", "Quỷ": "👹", "Liễu": "🌿",
+    "Tinh": "⭐", "Trương": "📜", "Dực": "🪽", "Chẩn": "🩺"
+  };
+
+  // ===== NHI THẬP BÁT TÚ (GIỮ NGUYÊN DỮ LIỆU BẠN ĐƯA) =====
+  const NHI_THAP_BAT_TU = {
+    "Giác": { tenNgay: "Giác Mộc Giao", danhGia: "Tốt (Bình Tú)", tuongTinh: "Tướng tinh con Giao Long", nenLam: "Mọi việc tạo tác đều đặng được vinh xương và tấn lợi. Việc hôn nhân hay cưới gả sinh con quý tử. Công danh thăng tiến, khoa cử đỗ đạt cao.", kiengCu: "Chôn cất hoạn nạn phải ba năm. Dù xây đắp mộ phần hay sửa chữa mộ phần ắt có người chết.", ngoaiLe: "Sao Giác trúng vào ngày Dần là Đăng Viên mang ý nghĩa được ngôi vị cao cả, hay mọi sự đều tốt đẹp. Sao Giác trúng vào ngày Ngọ là Phục Đoạn Sát: rất kỵ trong việc chôn cất, thừa kế, chia lãnh gia tài, xuất hành và cả khởi công lò nhuộm hoặc lò gốm.", tho: "Giác tinh tọa tác chủ vinh xương\nNgoại tiến điền tài cập nữ lang\nGiá thú hôn nhân sinh quý tử\nVăn nhân cập đệ kiến Quân vương" },
+    "Cang": { tenNgay: "Cang Kim Long", danhGia: "Xấu (Hung Tú)", tuongTinh: "Tướng tinh con Rồng", nenLam: "Công việc liên quan đến cắt may áo màn sẽ đặng nhiều lộc ăn.", kiengCu: "Chôn cất bị Trùng tang. Nếu cưới gả e rằng phòng không giá lạnh. Nếu tranh đấu kiện tụng thì lâm bại. Nếu khởi dựng nhà cửa chết con đầu.", ngoaiLe: "Sao Cang nhằm vào ngày Rằm là Diệt Một Nhật: Cữ làm rượu, thừa kế sự nghiệp, lập lò gốm, lò nhuộm hay vào làm hành chính, thứ nhất đi thuyền chẳng khỏi nguy hại.", tho: "Can tinh tạo tác Trưởng phòng đường\nThập nhật chi trung chủ hữu ương\nĐiền địa tiêu ma, quan thất chức" },
+    "Đê": { tenNgay: "Đê Thổ Lạc", danhGia: "Xấu (Hung Tú)", tuongTinh: "Tướng tinh con Lạc Đà", nenLam: "Sao Đê đại hung, không hợp để làm bất kỳ công việc trọng đại nào.", kiengCu: "Không nên khởi công xây dựng, chôn cất, cưới gả và xuất hành. KỴ NHẤT là đường thủy. Ngày này sinh con chẳng phải điềm lành nên làm âm đức cho con.", ngoaiLe: "Đê Thổ Lạc tại: Thân, Tý và Thìn trăm việc đều tốt. Trong đó, Thìn là tốt hơn hết bởi Sao Đê Đăng Viên tại Thìn.", tho: "Đê tinh tạo tác chủ tai hung\nPhí tận điền viên, thương khố không\nMai táng bất khả dụng thử nhật" },
+    "Phòng": { tenNgay: "Phòng Nhật Thố", danhGia: "Tốt (Kiết Tú)", tuongTinh: "Tướng tinh con Thỏ", nenLam: "Mọi việc khởi công tạo tác đều tốt. Ngày này hợp nhất cho việc cưới gả, xuất hành, xây dựng nhà, chôn cất, đi thuyền, mưu sự, chặt cỏ phá đất và cả cắt áo.", kiengCu: "Sao Phòng là Đại Kiết Tinh nên không kỵ bất kỳ việc gì.", ngoaiLe: "Sao Phòng tại Đinh Sửu hay Tân Sửu đều tốt. Tại Dậu thì càng tốt hơn, vì Sao Phòng Đăng Viên tại Dậu.", tho: "Phòng tinh tạo tác điền viên tiến\nHuyết tài ngưu mã biến sơn cương\nCánh chiêu ngoại xứ điền trang trạch" },
+    "Tâm": { tenNgay: "Tâm Nguyệt Hồ", danhGia: "Xấu (Hung Tú)", tuongTinh: "Tướng tinh con Chồn", nenLam: "Hung tú này tạo tác bất kỳ việc chi cũng không hạp.", kiengCu: "Khởi công tạo tác việc chi cũng không tránh khỏi hại. Nhất là cưới gả, đóng giường, lót giường, xây cất, chôn cất và tranh tụng.", ngoaiLe: "Ngày Dần Sao Tâm Đăng Viên, tốt khi dùng làm các việc nhỏ.", tho: "Tâm tinh tạo tác đại vi hung\nCánh tao hình tụng, ngục tù trung\nNgỗ nghịch quan phi, điền trạch thoái" },
+    "Vĩ": { tenNgay: "Vĩ Hỏa Hổ", danhGia: "Tốt (Kiết Tú)", tuongTinh: "Tướng tinh con Cọp", nenLam: "Khởi công tạo tác bất kể việc chi đều tốt. Việc cưới gả, xây cất, chôn cất hay việc dời nhà chuyển chỗ đều tốt.", kiengCu: "Không có.", ngoaiLe: "Sao Vĩ tại Tuất là Đăng Viên rất tốt.", tho: "Vĩ tinh tạo tác chủ thiên ân\nPhú quý vinh hoa, phúc thọ khang\nGiá thú hôn nhân sinh quý tử" },
+    "Cơ": { tenNgay: "Cơ Thổ Báo", danhGia: "Xấu (Hung Tú)", tuongTinh: "Tướng tinh con Beo", nenLam: "Tu bổ mộ phần.", kiengCu: "Xuất hành, chôn cất, cưới gả, xây cất đều hung.", ngoaiLe: "Sao Cơ tại Dậu Đăng Viên, tại Tỵ và Sửu tốt.", tho: "Cơ tinh tạo tác hữu hà lợi\nNội gia hoàn nạn khẩu xá tình" },
+    "Đẩu": { tenNgay: "Đẩu Mộc Giải", danhGia: "Tốt (Kiết Tú)", tuongTinh: "Tướng tinh con Giải", nenLam: "Nhập học hay phó nhậm tiến công danh. Chôn cất, xây cất cũng tốt.", kiengCu: "Đi thuyền. Cưới gả không hạp.", ngoaiLe: "Ngày Thân là Đăng Viên rất tốt.", tho: "Đẩu tinh tạo tác chủ chiêu tài\nVăn vũ quan viên vị đỉnh đài" },
+    "Ngưu": { tenNgay: "Ngưu Kim Ngưu", danhGia: "Xấu (Hung Tú)", tuongTinh: "Tướng tinh con Trâu", nenLam: "Không có.", kiengCu: "Chôn cất hay xây nhà đều hung. Cưới gả hoạn nạn.", ngoaiLe: "Ngày Mùi là Đăng Viên, dùng làm các việc nhỏ.", tho: "Ngưu tinh tạo tác chủ tai nguy\nCửu hoạnh tam tai bất khả thôi" },
+    "Nữ": { tenNgay: "Nữ Thổ Dơi", danhGia: "Xấu (Hung Tú)", tuongTinh: "Tướng tinh con Dơi", nenLam: "Chôn cất.", kiengCu: "Cưới gả, xây cất, xuất hành đều hung.", ngoaiLe: "Ngày Ngọ là Đăng Viên nhưng phạm Phục Đoạn.", tho: "Nữ tinh tạo tác tổn gia phong\nChí dạ câu thư, bất kiến công" },
+    "Hư": { tenNgay: "Hư Nhật Thử", danhGia: "Xấu (Hung Tú)", tuongTinh: "Tướng tinh con Chuột", nenLam: "Chôn cất.", kiengCu: "Cưới gả, mở cửa hàng, mưu sự đều hung.", ngoaiLe: "Ngày Tỵ là Đăng Viên, việc nhỏ tốt.", tho: "Hư tinh tạo tác chủ tai ương\nNam nữ cô miên bất nhất song" },
+    "Nguy": { tenNgay: "Nguy Nguyệt Yến", danhGia: "Xấu (Hung Tú)", tuongTinh: "Tướng tinh con Én", nenLam: "Chôn cất. Cắt áo.", kiengCu: "Xây cất, hôn nhân đại kỵ.", ngoaiLe: "Ngày Thìn Đăng Viên nhưng phạm Phục Đoạn.", tho: "Nguy tinh bất khả tạo cao đường\nTự điếu Phình linh tự phá gia" },
+    "Thất": { tenNgay: "Thất Hỏa Trư", danhGia: "Tốt (Bình Tú)", tuongTinh: "Tướng tinh con Lợn", nenLam: "Cưới gả, xây cất, giao dịch đều tốt.", kiengCu: "Chôn cất.", ngoaiLe: "Ngày Mão là Đăng Viên rất tốt.", tho: "Thất tinh tạo tác tiến điền ngưu\nNhi tôn đại đại, cận vương hầu" },
+    "Bích": { tenNgay: "Bích Thủy Dũ", danhGia: "Tốt (Kiết Tú)", tuongTinh: "Tướng tinh con Nhím", nenLam: "Xây cất, cưới gả, xuất hành, chôn cất, khai trương đều tốt.", kiengCu: "Không có.", ngoaiLe: "Ngày Dần là Đăng Viên rất tốt.", tho: "Bích tinh tạo tác chủ tăng tài\nTự viên điền địa, quảng triêu khai" },
+    "Khuê": { tenNgay: "Khuê Mộc Lang", danhGia: "Xấu (Hung Tú)", tuongTinh: "Tướng tinh con Sói", nenLam: "Chôn cất.", kiengCu: "Cưới gả, xuất hành, xây cất đại kỵ.", ngoaiLe: "Ngày Sửu Đăng Viên, việc nhỏ tốt.", tho: "Khuê tinh tạo tác đắc trinh tường\nGiá thú hôn nhân bất khả đương" },
+    "Lâu": { tenNgay: "Lâu Kim Cẩu", danhGia: "Tốt (Kiết Tú)", tuongTinh: "Tướng tinh con Chó", nenLam: "Hôn nhân, xuất hành, xây cất, chôn cất đều tốt.", kiengCu: "Không có.", ngoaiLe: "Ngày Tý là Đăng Viên rất tốt.", tho: "Lâu tinh tạo tác tăng điền độ\nKho mãn tài doanh, tự phú hào" },
+    "Vị": { tenNgay: "Vị Thổ Trĩ", danhGia: "Tốt (Kiết Tú)", tuongTinh: "Tướng tinh con Trĩ", nenLam: "Khởi công tạo tác việc gì cũng tốt. Tốt nhất là cưới gả, xây cất, dọn cỏ, gieo trồng, lấy giống.", kiengCu: "Đi thuyền.", ngoaiLe: "Sao Vị mất chí khí tại ngày Dần, nhất là ngày Mậu Dần, rất hung, không nên cưới gả, xây cất nhà cửa. Gặp ngày Tuất sao Vị đăng viên nên mưu cầu công danh tốt.", tho: "Vị tinh tạo tác sự như hà\nPhú quý, vinh hoa, hỷ khí đa" },
+    "Mão": { tenNgay: "Mão Nhật Kê", danhGia: "Xấu (Hung Tú)", tuongTinh: "Tướng tinh con Gà", nenLam: "Xây dựng cũng như tạo tác đều tốt.", kiengCu: "Chôn Cất thì ĐẠI KỴ. Cưới gã, khai ngòi phóng thủy, khai trương, xuất hành, đóng giường lót giường, trổ cửa dựng cửa kỵ.", ngoaiLe: "Sao Mão Nhật Kê tại Mùi thì mất chí khí. Tại Ất Mão hay Đinh Mão rất tốt. Ngày Mão Đăng Viên nên cưới gả tốt, ngày Quý Mão nếu tạo tác thì mất tiền của.", tho: "Mão tinh tạo tác tiến điền ngưu\nMai táng quan tai bất đắc hưu" },
+    "Tất": { tenNgay: "Tất Nguyệt Ô", danhGia: "Tốt (Kiết Tú)", tuongTinh: "Tướng tinh con Quạ", nenLam: "Khởi công tạo tác bất kể việc chi đều tốt. Tốt nhất là việc trổ cửa dựng cửa, đào kinh, tháo nước, khai mương, chôn cất, cưới gả, chặt cỏ phá đất hay móc giếng.", kiengCu: "Việc đi thuyền.", ngoaiLe: "Sao Tất Nguyệt Ô tại Thìn, Thân và Tý đều tốt. Tại Thân hiệu là Nguyệt Quải Khôn Sơn, tức là trăng treo đầu núi Tây Nam nên rất là tốt.", tho: "Tất tinh tạo tác chủ quang tiền\nMãi dắc điền viên hữu lật tiền" },
+    "Chủy": { tenNgay: "Chủy Hỏa Hầu", danhGia: "Xấu (Hung Tú)", tuongTinh: "Tướng tinh con Khỉ", nenLam: "Sao Chủy không nên làm bất kỳ việc chi.", kiengCu: "Khởi công tạo tác việc chi cũng không tốt. KỴ NHẤT là chôn cất và các vụ thuộc về chết chôn như sửa đắp mồ mả, làm sanh phần, đóng thọ đường.", ngoaiLe: "Sao Chủy Hỏa Hầu tại Tỵ bị đoạt khí, còn Hung thì càng thêm Hung. Tại Dậu rất tốt, vì Sao Chủy Đăng Viên ở Dậu đem khởi động và thăng tiến. Tại Sửu là Đắc Địa, mọi việc ắt nên.", tho: "Chủy tinh tạo tác hữu đồ hình\nTam niên tất đinh chủ linh đinh" },
+    "Sâm": { tenNgay: "Sâm Thủy Viên", danhGia: "Tốt (Bình Tú)", tuongTinh: "Tướng tinh con Vượn", nenLam: "Nhiều việc khởi công tạo tác tốt như: dựng cửa trổ cửa, xây cất nhà, nhập học, làm thủy lợi, tháo nước đào mương hay đi thuyền.", kiengCu: "Cưới gả, đóng giường lót giường, chôn cất hay kết bạn đều không tốt.", ngoaiLe: "Ngày Tuất Sao Sâm Đăng Viên, nên phó nhậm đặng cầu công danh hiển hách.", tho: "Sâm tinh tạo tác vượng nhân gia\nVăn tinh triều diệu, đại quang hoa" },
+    "Tỉnh": { tenNgay: "Tỉnh Mộc Hãn", danhGia: "Tốt (Bính Tú)", tuongTinh: "Tướng tinh con Dê Trừu", nenLam: "Tạo tác nhiều việc rất tốt như trổ cửa dựng cửa, mở thông đường nước, đào mương móc giếng, đi thuyền, xây cất, nhậm chức hoặc nhập học.", kiengCu: "Làm sanh phần, đóng thọ đường, chôn cất hay tu bổ mộ phần.", ngoaiLe: "Sao Tỉnh Mộc Hãn tại Mùi, Hợi, Mão mọi việc tốt. Tại Mùi là Nhập Miếu nên khởi động vinh quang.", tho: "Tỉnh tinh tạo tác vượng tàm điền\nKim bảng đề danh đệ nhất tiên" },
+    "Quỷ": { tenNgay: "Quỷ Kim Dương", danhGia: "Xấu (Hung Tú)", tuongTinh: "Tướng tinh con Dê", nenLam: "Việc chôn cất, chặt cỏ phá đất hoặc cắt áo đều tốt.", kiengCu: "Khởi tạo bất kể việc chi cũng hại. Hại nhất là trổ cửa dựng cửa, tháo nước, việc đào ao giếng, xây cất nhà, cưới gả, động đất, xây tường và dựng cột.", ngoaiLe: "Ngày Tý Đăng Viên thừa kế tước phong rất tốt, đồng thời phó nhiệm may mắn.", tho: "Quỷ tinh khởi tạo tất nhân vong\nĐường tiền bất kiến chủ nhân lang" },
+    "Liễu": { tenNgay: "Liễu Thổ Chương", danhGia: "Xấu (Hung Tú)", tuongTinh: "Tướng tinh con Gấu Ngựa", nenLam: "Không có việc gì tốt.", kiengCu: "Khởi công tạo tác việc chi cũng rất bất lợi, hung hại. Hung hại nhất là làm thủy lợi như trổ tháo nước, đào ao lũy, chôn cất, việc sửa cửa dựng cửa, xây đắp.", ngoaiLe: "Sao Liễu Thổ Chướng tại Ngọ trăm việc đều tốt. Tại Tỵ thì Đăng Viên: thừa kế hay lên quan lãnh chức đều là hai điều tốt nhất. Tại Dần, Tuất rất suy vi nên kỵ xây cất và chôn cất.", tho: "Liễu tinh tạo tác chủ tao quan\nTrú dạ thâu nhàn bất tạm an" },
+    "Tinh": { tenNgay: "Tinh Nhật Mã", danhGia: "Xấu (Bình Tú)", tuongTinh: "Tướng tinh con Ngựa", nenLam: "Xây dựng phòng mới.", kiengCu: "Chôn cất, cưới gả, mở thông đường nước.", ngoaiLe: "Sao Tinh là một trong Thất Sát Tinh, nếu sinh con nhằm ngày này nên lấy tên Sao đặt tên cho trẻ để dễ nuôi. Sao Tinh gặp ngày Dần, Ngọ, Tuất đều tốt. Gặp ngày Thân là Đăng Giá (lên xe): xây cất tốt mà chôn cất nguy.", tho: "Tinh tú nhật hảo tạo tân phòng\nTiến chức gia quan cận Đế vương" },
+    "Trương": { tenNgay: "Trương Nguyệt Lộc", danhGia: "Tốt (Kiết Tú)", tuongTinh: "Tướng tinh con Nai", nenLam: "Khởi công tạo tác trăm việc đều tốt. Trong đó, tốt nhất là che mái dựng hiên, xây cất nhà, trổ cửa dựng cửa, cưới gả, chôn cất, hay làm ruộng, nuôi tằm, làm ruỷ lợi, đặt táng kê gác, chặt cỏ phá đất, cắt áo cũng đều rất tốt.", kiengCu: "Sửa hay làm thuyền chèo, hoặc đẩy thuyền mới xuống nước.", ngoaiLe: "Tại Mùi, Hợi, Mão đều tốt. Tại Mùi: đăng viên rất tốt nhưng phạm vào Phục Đoạn.", tho: "Trương tinh nhật hảo tạo long hiên\nNiên niên tiện kiến tiến trang điền" },
+    "Dực": { tenNgay: "Dực Hỏa Xà", danhGia: "Xấu (Hung Tú)", tuongTinh: "Tướng tinh con Rắn", nenLam: "Chôn cất.", kiengCu: "Cưới gả, xây cất nhà đại kỵ.", ngoaiLe: "Ngày Hợi là Đăng Viên nhưng vẫn kỵ cưới gả, xây cất.", tho: "Dực tinh bất lợi giá cao đường\nTam tuế hài nhi tự tổn thương" },
+    "Chẩn": { tenNgay: "Chẩn Thủy Dẫn", danhGia: "Tốt (Kiết Tú)", tuongTinh: "Tướng tinh con Giun", nenLam: "Xây dựng, gắn cửa, kê gác, chôn cất đều tốt.", kiengCu: "Động thổ, cưới gả không hạp.", ngoaiLe: "Tại Hợi đăng viên tốt nhất.", tho: "Chẩn tinh lâm thủy tạo long cung\nĐại đại vi quan thụ sấm phong" }
+  };
 
   // ===== LUNAR CALCULATION FUNCTIONS =====
   function jdFromDate(dd, mm, yy) {
@@ -282,9 +353,7 @@
     const gioHD = GIO_HD[chiDay % 6];
     const result = [];
     for (let i = 0; i < 12; i++) {
-      if (gioHD.charAt(i) === '1') {
-        result.push(CHI[i]);
-      }
+      if (gioHD.charAt(i) === '1') result.push(CHI[i]);
     }
     return result;
   }
@@ -293,20 +362,105 @@
     const festivals = [];
     const solarDate = solarDay + '/' + solarMonth;
     const lunarDate = lunarDay + '/' + lunarMonth;
-    
+
     for (let i = 0; i < NGAY_LE_DL.length; i++) {
-      if (NGAY_LE_DL[i] === solarDate) {
-        festivals.push(NGAY_LE_DL_STRING[i]);
-      }
+      if (NGAY_LE_DL[i] === solarDate) festivals.push(NGAY_LE_DL_STRING[i]);
     }
-    
     for (let i = 0; i < NGAY_LE_AL.length; i++) {
-      if (NGAY_LE_AL[i] === lunarDate) {
-        festivals.push(NGAY_LE_AL_STRING[i]);
-      }
+      if (NGAY_LE_AL[i] === lunarDate) festivals.push(NGAY_LE_AL_STRING[i]);
     }
-    
     return festivals;
+  }
+
+  // ===== FIX: GIỜ CAN-CHI THEO GIỜ THỰC TẾ (không cần phút) =====
+  function getChiIndexOfHour(hour24) {
+    // 23:00-00:59 = Tý (0), 01-02:59 = Sửu (1), ..., 21-22:59 = Hợi (11)
+    return Math.floor(((hour24 + 1) % 24) / 2);
+  }
+
+  function getCanChiHourFromJdAndHour(jd, hour24) {
+    const dayCanIndex = (jd + 9) % 10;              // Can của NGÀY đang xem
+    const hourChiIndex = getChiIndexOfHour(hour24); // Chi theo GIỜ hiện tại
+
+    // Can giờ Tý phụ thuộc Can ngày:
+    // Giáp/Kỷ -> Giáp (0)
+    // Ất/Canh -> Bính (2)
+    // Bính/Tân -> Mậu (4)
+    // Đinh/Nhâm -> Canh (6)
+    // Mậu/Quý -> Nhâm (8)
+    const START_CAN_TY = [0, 2, 4, 6, 8, 0, 2, 4, 6, 8];
+    const hourCanIndex = (START_CAN_TY[dayCanIndex] + hourChiIndex) % 10;
+
+    return `${CAN[hourCanIndex]} ${CHI[hourChiIndex]}`;
+  }
+
+  function getKhoiGioTyFromJd(jd) {
+    const dayCanIndex = (jd + 9) % 10;
+    const START_CAN_TY = [0, 2, 4, 6, 8, 0, 2, 4, 6, 8];
+    return `${CAN[START_CAN_TY[dayCanIndex]]} Tý`;
+  }
+
+  // ===== HÀM TÍNH TOÁN CHO POPUP =====
+  function getTietKhi(jd) {
+    const T = (jd - 2451545.0) / 36525;
+    const T2 = T * T;
+    const dr = PI / 180;
+    const M = 357.52910 + 35999.05030 * T - 0.0001559 * T2 - 0.00000048 * T * T2;
+    const L0 = 280.46645 + 36000.76983 * T + 0.0003032 * T2;
+    let DL = (1.914600 - 0.004817 * T - 0.000014 * T2) * Math.sin(dr * M);
+    DL += (0.019993 - 0.000101 * T) * Math.sin(dr * 2 * M) + 0.000290 * Math.sin(dr * 3 * M);
+    let L = L0 + DL;
+    L = L * dr;
+    L -= PI * 2 * INT(L / (PI * 2));
+    const st_index = INT(L / PI * 12);
+    return TIET_KHI[st_index];
+  }
+
+  function getGioHacDao(jd) {
+    const chiIndex = (jd + 1) % 12;
+    const hourPattern = GIO_HD[Math.floor(chiIndex / 2)];
+    const gioHacDao = [];
+    for (let i = 0; i < 12; i++) {
+      if (hourPattern[i] === '0') gioHacDao.push(CHI[i]);
+    }
+    return gioHacDao.join(', ');
+  }
+
+  function getThanSat(jd) {
+    const TRUC_ORDER = ["Kiến", "Trừ", "Mãn", "Bình", "Định", "Chấp", "Phá", "Nguy", "Thành", "Thu", "Khai", "Bế"];
+
+    const T = (jd - 2451545.0) / 36525;
+    const T2 = T * T;
+    const dr = PI / 180;
+    const M = 357.52910 + 35999.05030 * T - 0.0001559 * T2 - 0.00000048 * T * T2;
+    const L0 = 280.46645 + 36000.76983 * T + 0.0003032 * T2;
+    let DL = (1.914600 - 0.004817 * T - 0.000014 * T2) * Math.sin(dr * M);
+    DL += (0.019993 - 0.000101 * T) * Math.sin(dr * 2 * M) + 0.000290 * Math.sin(dr * 3 * M);
+    let L = L0 + DL;
+    L = L * dr;
+    L -= PI * 2 * INT(L / (PI * 2));
+    const st_index = INT(L / PI * 12);
+
+    const month_chi_list = [3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 0, 0, 1, 1, 2, 2, 3];
+    const month_chi_index = month_chi_list[st_index];
+    const day_chi_index = (jd + 1) % 12;
+    const duty_index = (day_chi_index - month_chi_index + 12) % 12;
+    const trucName = TRUC_ORDER[duty_index];
+    const trucInfo = THAP_NHI_TRUC[trucName];
+
+    const saoNames = Object.keys(NHI_THAP_BAT_TU);
+    const jd_ref = 2451545;
+    const mansion_ref_index = 16;
+    const day_diff = jd - jd_ref;
+    const current_mansion_index = ((mansion_ref_index + day_diff) % 28 + 28) % 28;
+    const saoName = saoNames[current_mansion_index];
+    const saoInfo = NHI_THAP_BAT_TU[saoName];
+
+    return {
+      truc: { name: trucName, info: trucInfo, emoji: EMOJI_TRUC[trucName] || "" },
+      sao: { name: saoName, info: saoInfo, emoji: EMOJI_SAO[saoName] || "" },
+      napAm: "Ngũ Hành (chưa tính)"
+    };
   }
 
   // ===== CUSTOM CARD CLASS =====
@@ -319,14 +473,16 @@
       this.isDatePickerOpen = false;
       this.isLunarMode = false;
       this._isRendered = false;
+      this.backgroundOpacity = 0;
+      this._clockTimer = null; // auto refresh
     }
 
     setConfig(config) {
-      this._config = config;
-      this.backgroundOpacity = typeof config.background_opacity === 'number' 
-        ? Math.max(0, Math.min(1, config.background_opacity)) 
+      this._config = config || {};
+      this.backgroundOpacity = typeof config.background_opacity === 'number'
+        ? Math.max(0, Math.min(1, config.background_opacity))
         : 0;
-      
+
       if (config.background === 'transparent' && this.backgroundOpacity === 0) {
         this.backgroundOpacity = 1;
       }
@@ -347,6 +503,18 @@
       }
       this.setupEventListeners();
       this.updateCalendar();
+
+      // Auto refresh mỗi phút để giờ Can-Chi đổi đúng khi qua giờ mới
+      this._clockTimer && clearInterval(this._clockTimer);
+      this._clockTimer = setInterval(() => {
+        this.updateCalendar();
+        const popup = this.shadowRoot.getElementById('ha-lich-popup');
+        if (popup && popup.classList.contains('show')) this.showDayPopup();
+      }, 60 * 1000);
+    }
+
+    disconnectedCallback() {
+      this._clockTimer && clearInterval(this._clockTimer);
     }
 
     getQuoteFromSensor() {
@@ -354,15 +522,9 @@
         const quoteEntity = this._config.quote_entity;
         if (quoteEntity) {
           const state = this._hass.states[quoteEntity];
-          if (state) {
-            return {
-              text: state.state,
-              author: state.attributes.author || ''
-            };
-          }
+          if (state) return { text: state.state, author: state.attributes.author || '' };
         }
       }
-      
       const day = this.currentDate.getDate();
       const quoteIndex = day % DEFAULT_QUOTES.length;
       return DEFAULT_QUOTES[quoteIndex];
@@ -371,575 +533,281 @@
     render() {
       const bgOpacity = this.backgroundOpacity;
       const isTransparent = bgOpacity > 0;
-      
+
       this.shadowRoot.innerHTML = `
         <style>
-          :host {
-            display: block !important;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            position: relative !important;
-          }
+          :host { display:block !important; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; position:relative !important; }
+          * { box-sizing:border-box; margin:0; padding:0; }
 
-          * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-          }
-
-          .container {
-            max-width: 400px;
-            margin: 0 auto;
-            position: relative;
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-          }
+          .container { max-width:400px; margin:0 auto; position:relative; display:block !important; visibility:visible !important; opacity:1 !important; }
 
           .calendar-bloc {
             background: ${isTransparent ? `rgba(255, 255, 255, ${1 - bgOpacity})` : 'white'};
-            border-radius: 12px;
-            box-shadow: ${isTransparent ? 'none' : '0 20px 60px rgba(0, 0, 0, 0.3)'};
+            border-radius:12px;
+            box-shadow:${isTransparent ? 'none' : '0 20px 60px rgba(0, 0, 0, 0.3)'};
             ${isTransparent ? 'border: 1px solid rgba(255, 255, 255, 0.3);' : ''}
-            overflow: hidden;
-            position: relative;
-            z-index: 1;
-            display: block !important;
-            visibility: visible !important;
+            overflow:hidden; position:relative; z-index:1;
+            display:block !important; visibility:visible !important;
           }
 
           .calendar-header {
-            background: ${isTransparent ? 'rgba(123, 31, 162, 0.3)' : 'linear-gradient(135deg, #7b1fa2, #9c27b0)'};
-            color: white;
-            padding: 10px;
-            text-align: center;
-            position: relative;
+            background:${isTransparent ? 'rgba(123, 31, 162, 0.3)' : 'linear-gradient(135deg, #7b1fa2, #9c27b0)'};
+            color:white; padding:10px; text-align:center; position:relative;
           }
 
-          .header-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 6px;
-          }
+          .header-controls { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:6px; }
 
           .nav-button {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
+            background:rgba(255,255,255,0.2);
+            border:1px solid rgba(255,255,255,0.3);
+            color:white; padding:4px 8px; border-radius:12px;
+            cursor:pointer; font-weight:600;
+            transition:all 0.3s; user-select:none;
           }
+          .nav-button:hover { background:rgba(255,255,255,0.3); transform:scale(1.05); }
 
-          .nav-button:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: scale(1.05);
-          }
+          .today-button { background:rgba(255,255,255,0.9); color:#7b1fa2; }
+          .today-button:hover { background:white; }
 
-          .today-button {
-            background: rgba(255, 255, 255, 0.9);
-            color: #7b1fa2;
-          }
-
-          .today-button:hover {
-            background: white;
-          }
-
-          .month-year-vi {
-            font-size: 1em;
-            font-weight: bold;
-          }
-
-          .month-year-en {
-            font-size: 0.7em;
-            opacity: 0.9;
-          }
+          .month-year-vi { font-size:1em; font-weight:bold; }
+          .month-year-en { font-size:0.7em; opacity:0.9; }
 
           .top-section {
-            display: flex;
-            flex-direction: column;
-            padding: 5px 8px 3px 8px;
-            gap: 8px;
-            align-items: center;
-            background: ${isTransparent ? 'transparent' : 'linear-gradient(to bottom, #fff 0%, #f8f9fa 100%)'};
+            display:flex; flex-direction:column;
+            padding:5px 8px 3px 8px; gap:8px; align-items:center;
+            background:${isTransparent ? 'transparent' : 'linear-gradient(to bottom, #fff 0%, #f8f9fa 100%)'};
           }
 
           .solar-day-large {
-            font-size: 4em;
-            font-weight: bold;
-            color: ${isTransparent ? '#fff' : '#333'};
-            line-height: 1;
-            text-shadow: ${isTransparent ? '2px 2px 8px rgba(0,0,0,0.5)' : '2px 2px 4px rgba(0,0,0,0.1)'};
+            font-size:4em; font-weight:bold;
+            color:${isTransparent ? '#fff' : '#333'};
+            line-height:1;
+            text-shadow:${isTransparent ? '2px 2px 8px rgba(0,0,0,0.5)' : '2px 2px 4px rgba(0,0,0,0.1)'};
+            cursor:pointer; transition:transform 0.2s;
           }
+          .solar-day-large:hover { transform:scale(1.05); }
+          .solar-day-large.sunday, .solar-day-large.new-day { color:#e91e63; }
 
-          .solar-day-large.sunday,
-          .solar-day-large.new-day {
-            color: #e91e63;
-          }
-
-          .quote-author-container {
-            width: 100%;
-          }
-
+          .quote-author-container { width:100%; }
           .quote-section {
-            width: 100%;
-            padding: 4px 8px;
-            background: ${isTransparent ? 'rgba(255, 255, 255, 0.1)' : 'rgba(123, 31, 162, 0.05)'};
-            border-radius: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+            width:100%; padding:4px 8px;
+            background:${isTransparent ? 'rgba(255,255,255,0.1)' : 'rgba(123,31,162,0.05)'};
+            border-radius:12px;
+            display:flex; flex-direction:column; gap:8px;
           }
-
           .quote-text {
-            font-style: italic;
-            color: ${isTransparent ? '#fff' : '#333'};
-            line-height: 1.6; font-size: 1em;
-            text-align: center;
+            font-style:italic; color:${isTransparent ? '#fff' : '#333'};
+            line-height:1.6; font-size:1em; text-align:center;
           }
-
-          .author-section {
-            display: flex;
-            justify-content: flex-end;
-            padding-right: 5%;
-          }
-
-          .quote-author-side {
-            color: ${isTransparent ? '#fff' : '#7b1fa2'};
-            font-weight: 600;
-            font-size: 0.7em;
-            text-align: right;
-          }
+          .author-section { display:flex; justify-content:flex-end; padding-right:5%; }
+          .quote-author-side { color:${isTransparent ? '#fff' : '#7b1fa2'}; font-weight:600; font-size:0.7em; text-align:right; }
 
           .weekday-festivals-section {
-            padding: 8px 12px;
-            background: ${isTransparent ? 'transparent' : '#f8f9fa'};
-            min-height: 40px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+            padding:8px 12px;
+            background:${isTransparent ? 'transparent' : '#f8f9fa'};
+            min-height:40px;
+            display:flex; flex-direction:column; gap:8px;
           }
 
           .festivals-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            justify-content: center;
-            margin-bottom: 8px;
-            min-height: 40px;
+            display:flex; flex-wrap:wrap; gap:6px;
+            justify-content:center; margin-bottom:8px; min-height:40px;
           }
-
           .festival-item {
-            background: linear-gradient(135deg, #7b1fa2, #9c27b0);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.7em;
-            font-weight: 500;
-            box-shadow: 0 2px 8px rgba(123, 31, 162, 0.3);
+            background:linear-gradient(135deg,#7b1fa2,#9c27b0);
+            color:white; padding:4px 8px; border-radius:12px;
+            font-size:0.7em; font-weight:500;
+            box-shadow:0 2px 8px rgba(123,31,162,0.3);
           }
 
           .weekday-row {
-            display: grid;
-            grid-template-columns: 1fr auto 1fr;
-            align-items: center;
-            gap: 8px;
-            border-top: ${isTransparent ? 'none' : '1px solid #e0e0e0'};
-            padding-top: 15px;
+            display:grid; grid-template-columns:1fr auto 1fr;
+            align-items:center; gap:8px;
+            border-top:${isTransparent ? 'none' : '1px solid #e0e0e0'};
+            padding-top:15px;
           }
-
-          .weekday-en {
-            font-size: 1.5em;
-            font-weight: 600;
-            color: ${isTransparent ? '#fff' : '#333'};
-            text-align: center;
-          }
-
-          .weekday-en.sunday {
-            color: #e91e63;
-          }
-
-          .weekday-vi {
-            font-size: 1.8em;
-            font-weight: bold;
-            color: ${isTransparent ? '#fff' : '#555'};
-            text-align: center;
-          }
-
-          .weekday-vi.sunday {
-            color: #e91e63;
-          }
-
-          .weekday-separator {
-            width: 1px;
-            height: 24px;
-            background: ${isTransparent ? 'rgba(255, 255, 255, 0.3)' : '#e0e0e0'};
-          }
+          .weekday-en { font-size:1.5em; font-weight:600; color:${isTransparent ? '#fff' : '#333'}; text-align:center; }
+          .weekday-en.sunday { color:#e91e63; }
+          .weekday-vi { font-size:1.8em; font-weight:bold; color:${isTransparent ? '#fff' : '#555'}; text-align:center; }
+          .weekday-vi.sunday { color:#e91e63; }
+          .weekday-separator { width:1px; height:24px; background:${isTransparent ? 'rgba(255,255,255,0.3)' : '#e0e0e0'}; }
 
           .bottom-section {
-            display: grid;
-            grid-template-columns: 1fr auto 1fr;
-            gap: 6px;
-            padding: 10px 16px 16px 16px;
-            background: ${isTransparent ? 'transparent' : 'white'};
-            align-items: center;
-            min-width: 0;
+            display:grid; grid-template-columns:1fr auto 1fr;
+            gap:6px; padding:10px 16px 16px 16px;
+            background:${isTransparent ? 'transparent' : 'white'};
+            align-items:center; min-width:0;
           }
 
-          .left-column {
-            min-width: 0;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-          }
+          .left-column { min-width:0; overflow:hidden; display:flex; flex-direction:column; gap:8px; }
 
           .lunar-month-info {
-            font-size: 0.8em;
-            font-weight: 600;
-            color: ${isTransparent ? '#fff' : '#7b1fa2'};
-            margin-bottom: 6px;
-            text-align: center;
-            min-height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-size:0.8em; font-weight:600;
+            color:${isTransparent ? '#fff' : '#7b1fa2'};
+            margin-bottom:6px; text-align:center;
+            min-height:30px; display:flex; align-items:center; justify-content:center;
           }
 
           .can-chi-info {
-            font-size: 0.7em;
-            color: ${isTransparent ? '#fff' : '#555'};
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            font-size:0.7em; color:${isTransparent ? '#fff' : '#555'};
+            display:flex; align-items:center; gap:8px;
           }
 
           .label-small {
-            background: ${isTransparent ? 'rgba(255, 255, 255, 0.2)' : '#f0f0f0'};
-            padding: 2px 4px;
-            border-radius: 12px;
-            font-size: 0.5em;
-            font-weight: 600;
-            min-width: 36px;
-            text-align: center;
+            background:${isTransparent ? 'rgba(255,255,255,0.2)' : '#f0f0f0'};
+            padding:2px 4px; border-radius:12px;
+            font-size:0.5em; font-weight:600;
+            min-width:36px; text-align:center;
           }
 
-          .center-column {
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-          }
-
+          .center-column { text-align:center; display:flex; flex-direction:column; align-items:center; gap:6px; }
           .lunar-day-large {
-            font-size: 4em;
-            font-weight: bold;
-            color: ${isTransparent ? '#fff' : '#333'};
-            line-height: 1;
-            text-shadow: ${isTransparent ? '2px 2px 6px rgba(0,0,0,0.5)' : '2px 2px 4px rgba(0,0,0,0.1)'};
+            font-size:4em; font-weight:bold; color:${isTransparent ? '#fff' : '#333'};
+            line-height:1; text-shadow:${isTransparent ? '2px 2px 6px rgba(0,0,0,0.5)' : '2px 2px 4px rgba(0,0,0,0.1)'};
           }
 
           .year-can-chi {
-            font-size: 1em;
-            font-weight: 600;
-            color: ${isTransparent ? '#fff' : '#7b1fa2'};
-            padding: 4px 8px;
-            background: ${isTransparent ? 'rgba(255, 255, 255, 0.2)' : 'rgba(123, 31, 162, 0.1)'};
-            border-radius: 12px;
+            font-size:1em; font-weight:600;
+            color:${isTransparent ? '#fff' : '#7b1fa2'};
+            padding:4px 8px;
+            background:${isTransparent ? 'rgba(255,255,255,0.2)' : 'rgba(123,31,162,0.1)'};
+            border-radius:12px;
           }
 
-          .gio-hoang-dao-section {
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-            overflow: hidden;
-          }
-
+          .gio-hoang-dao-section { text-align:center; display:flex; flex-direction:column; min-width:0; overflow:hidden; }
           .label {
-            font-size: 0.8em;
-            font-weight: 600;
-            color: ${isTransparent ? '#fff' : '#7b1fa2'};
-            margin-bottom: 6px;
-            letter-spacing: 1px;
-            text-align: center;
-            min-height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-size:0.8em; font-weight:600;
+            color:${isTransparent ? '#fff' : '#7b1fa2'};
+            margin-bottom:6px; letter-spacing:1px; text-align:center;
+            min-height:30px; display:flex; align-items:center; justify-content:center;
           }
-
           .gio-list {
-            font-size: 0.7em;
-            color: ${isTransparent ? '#fff' : '#555'};
-            line-height: 1.4;
-            background: ${isTransparent ? 'rgba(255, 255, 255, 0.1)' : '#f8f9fa'};
-            padding: 6px;
-            border-radius: 12px;
-            text-align: center;
+            font-size:0.7em; color:${isTransparent ? '#fff' : '#555'};
+            line-height:1.4;
+            background:${isTransparent ? 'rgba(255,255,255,0.1)' : '#f8f9fa'};
+            padding:6px; border-radius:12px; text-align:center;
           }
 
           .date-picker-toggle {
-            background: ${isTransparent ? 'rgba(123, 31, 162, 0.3)' : 'linear-gradient(135deg, #7b1fa2, #9c27b0)'};
-            color: white;
-            padding: 15px 20px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.3s;
-            margin-top: 10px;
-            border-radius: 6px 6px 0 0;
-            border: ${isTransparent ? '1px solid rgba(255, 255, 255, 0.2)' : 'none'};
+            background:${isTransparent ? 'rgba(123,31,162,0.3)' : 'linear-gradient(135deg, #7b1fa2, #9c27b0)'};
+            color:white; padding:15px 20px; cursor:pointer;
+            display:flex; justify-content:space-between; align-items:center;
+            transition:all 0.3s; margin-top:10px;
+            border-radius:6px 6px 0 0;
+            border:${isTransparent ? '1px solid rgba(255, 255, 255, 0.2)' : 'none'};
+            user-select:none;
           }
+          .date-picker-toggle:hover { background:${isTransparent ? 'rgba(123,31,162,0.5)' : 'linear-gradient(135deg, #6a1589, #8b1f9f)'}; }
 
-          .date-picker-toggle:hover {
-            background: ${isTransparent ? 'rgba(123, 31, 162, 0.5)' : 'linear-gradient(135deg, #6a1589, #8b1f9f)'};
-          }
-
-          .toggle-title {
-            font-size: 0.8em;
-            font-weight: 600;
-          }
-
-          .toggle-icon {
-            transition: transform 0.3s;
-            font-size: 0.6em;
-          }
-
-          .toggle-icon.open {
-            transform: rotate(180deg);
-          }
+          .toggle-title { font-size:0.8em; font-weight:600; }
+          .toggle-icon { transition:transform 0.3s; font-size:0.6em; }
+          .toggle-icon.open { transform:rotate(180deg); }
 
           .date-picker {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.4s ease-out, opacity 0.4s ease;
-            background: ${isTransparent ? 'rgba(255, 255, 255, 0.05)' : 'white'};
-            border-radius: 0 0 12px 12px;
-            opacity: 0;
-            border: ${isTransparent ? '1px solid rgba(255, 255, 255, 0.2)' : 'none'};
-            border-top: none;
+            max-height:0; overflow:hidden;
+            transition:max-height 0.4s ease-out, opacity 0.4s ease;
+            background:${isTransparent ? 'rgba(255,255,255,0.05)' : 'white'};
+            border-radius:0 0 12px 12px;
+            opacity:0;
+            border:${isTransparent ? '1px solid rgba(255,255,255,0.2)' : 'none'};
+            border-top:none;
           }
+          .date-picker.open { max-height:500px; opacity:1; }
 
-          .date-picker.open {
-            max-height: 500px;
-            opacity: 1;
-          }
-
-          .calendar-type-toggle {
-            display: flex;
-            gap: 6px;
-            padding: 20px 20px 10px 20px;
-          }
-
+          .calendar-type-toggle { display:flex; gap:6px; padding:20px 20px 10px 20px; }
           .type-toggle-btn {
-            flex: 1;
-            padding: 6px;
-            border: 2px solid ${isTransparent ? 'rgba(255, 255, 255, 0.3)' : '#e0e0e0'};
-            background: ${isTransparent ? 'rgba(255, 255, 255, 0.1)' : 'white'};
-            color: ${isTransparent ? '#fff' : '#333'};
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 1em;
-            font-weight: 600;
-            transition: all 0.2s;
+            flex:1; padding:6px;
+            border:2px solid ${isTransparent ? 'rgba(255,255,255,0.3)' : '#e0e0e0'};
+            background:${isTransparent ? 'rgba(255,255,255,0.1)' : 'white'};
+            color:${isTransparent ? '#fff' : '#333'};
+            border-radius:12px;
+            cursor:pointer;
+            font-size:1em; font-weight:600;
+            transition:all 0.2s;
           }
+          .type-toggle-btn:hover { border-color:#7b1fa2; }
+          .type-toggle-btn.active { background:linear-gradient(135deg,#7b1fa2,#9c27b0); color:white; border-color:#7b1fa2; }
 
-          .type-toggle-btn:hover {
-            border-color: #7b1fa2;
+          .date-inputs { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; padding:10px; }
+          .date-input-group { display:flex; flex-direction:column; gap:6px; }
+          .date-input-group label { font-size:0.7em; font-weight:600; color:${isTransparent ? '#fff' : '#555'}; }
+
+          .date-input-group input, .date-input-group select {
+            padding:10px;
+            border:1px solid ${isTransparent ? 'rgba(255,255,255,0.3)' : '#e0e0e0'};
+            background:${isTransparent ? 'rgba(255,255,255,0.1)' : 'white'};
+            color:${isTransparent ? '#fff' : '#333'};
+            border-radius:12px;
+            font-size:1em;
+            transition:border-color 0.2s;
           }
+          .date-input-group input:focus, .date-input-group select:focus { outline:none; border-color:#7b1fa2; }
 
-          .type-toggle-btn.active {
-            background: linear-gradient(135deg, #7b1fa2, #9c27b0);
-            color: white;
-            border-color: #7b1fa2;
-          }
+          .solar-inputs { display:none; }
+          .lunar-inputs { display:none; }
+          .lunar-inputs.active { display:grid; }
+          .solar-inputs.active { display:grid; }
 
-          .date-inputs {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            padding: 10px;
-          }
-          .date-input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-          }
-
-          .date-input-group label {
-            font-size: 0.7em;
-            font-weight: 600;
-            color: ${isTransparent ? '#fff' : '#555'};
-          }
-
-          .date-input-group input,
-          .date-input-group select {
-            padding: 10px;
-            border: 1px solid ${isTransparent ? 'rgba(255, 255, 255, 0.3)' : '#e0e0e0'};
-            background: ${isTransparent ? 'rgba(255, 255, 255, 0.1)' : 'white'};
-            color: ${isTransparent ? '#fff' : '#333'};
-            border-radius: 12px;
-            font-size: 1em;
-            transition: border-color 0.2s;
-          }
-
-          .date-input-group input:focus,
-          .date-input-group select:focus {
-            outline: none;
-            border-color: #7b1fa2;
-          }
-
-
-
-          .solar-inputs {
-            display: none;
-          }
-
-          .lunar-inputs {
-            display: none;
-          }
-
-          .lunar-inputs.active {
-            display: grid;
-          }
-
-          .solar-inputs.active {
-            display: grid;
-          }
           .goto-btn {
-            margin: 0 20px 20px 20px;
-            padding: 6px;
-            background: linear-gradient(135deg, #7b1fa2, #9c27b0);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
+            margin:0 20px 20px 20px;
+            padding:6px;
+            background:linear-gradient(135deg,#7b1fa2,#9c27b0);
+            color:white;
+            border:none;
+            border-radius:12px;
+            font-size:1em; font-weight:600;
+            cursor:pointer;
+            transition:all 0.2s;
           }
+          .goto-btn:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(123,31,162,0.3); }
 
-          .goto-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(123, 31, 162, 0.3);
-          }
-
-          /* Popup styles */
+          /* Popup */
           .ha-popup {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 99999;
-            display: none;
-            justify-content: center;
-            align-items: flex-end;
-            backdrop-filter: blur(4px);
+            position:fixed; top:0; left:0;
+            width:100vw; height:100vh;
+            background:rgba(0,0,0,0.6);
+            z-index:99999;
+            display:none;
+            justify-content:center;
+            align-items:flex-end;
+            backdrop-filter:blur(4px);
           }
-
-          .ha-popup.show {
-            display: flex;
-          }
-
+          .ha-popup.show { display:flex; }
           .ha-popup-box {
-            background: var(--card-background-color, #1e1e1e);
-            color: var(--primary-text-color, #fff);
-            width: 100%;
-            max-width: 500px;
-            max-height: 85%;
-            border-radius: 18px 18px 0 0;
-            padding: 20px;
-            overflow: auto;
-            animation: slideUp 0.3s ease;
-            margin-bottom: 0;
+            background:var(--card-background-color, #1e1e1e);
+            color:var(--primary-text-color, #fff);
+            width:100%;
+            max-width:500px;
+            max-height:85%;
+            border-radius:18px 18px 0 0;
+            padding:20px;
+            overflow:auto;
+            animation:slideUp 0.3s ease;
+            margin-bottom:0;
           }
-
           @media (min-width: 600px) {
-            .ha-popup {
-              align-items: center;
-            }
-            .ha-popup-box {
-              border-radius: 18px;
-              margin-bottom: auto;
-              width: 400px;
-            }
+            .ha-popup { align-items:center; }
+            .ha-popup-box { border-radius:18px; margin-bottom:auto; width:400px; }
           }
-
           .ha-popup-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: 600;
-            font-size: 1.2em;
-            margin-bottom: 15px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            padding-bottom: 10px;
+            display:flex; justify-content:space-between; align-items:center;
+            font-weight:600; font-size:1.2em;
+            margin-bottom:15px;
+            border-bottom:1px solid rgba(255,255,255,0.2);
+            padding-bottom:10px;
           }
+          .ha-popup-close { font-size:24px; cursor:pointer; padding:5px; transition:transform 0.2s; }
+          .ha-popup-close:hover { transform:scale(1.2); }
+          .ha-popup-content { line-height:1.6; }
+          .ha-popup-content p { margin:8px 0; font-size:15px; line-height:1.5; }
 
-          .ha-popup-close {
-            font-size: 24px;
-            cursor: pointer;
-            padding: 5px;
-            transition: transform 0.2s;
-          }
-
-          .ha-popup-close:hover {
-            transform: scale(1.2);
-          }
-
-          .ha-popup-content {
-            line-height: 1.6;
-          }
-
-          .ha-popup-content p {
-            margin: 8px 0;
-            font-size: 15px;
-            line-height: 1.5;
-          }
-
-          @keyframes slideUp {
-            from {
-              transform: translateY(100%);
-            }
-            to {
-              transform: translateY(0);
-            }
-          }
-
-          .solar-day-large {
-            cursor: pointer;
-            transition: transform 0.2s;
-          }
-
-          .solar-day-large:hover {
-            transform: scale(1.05);
-          }
+          @keyframes slideUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
 
           @media (max-width: 768px) {
-            .solar-day-large {
-              font-size: 4em;
-            }
-
-            .lunar-day-large {
-              font-size: 3em;
-            }
-
-
-            .author-section {
-              justify-content: center;
-              padding-right: 0;
-            }
-
-            .quote-author-side {
-              text-align: center;
-            }
+            .solar-day-large { font-size:4em; }
+            .lunar-day-large { font-size:3em; }
+            .author-section { justify-content:center; padding-right:0; }
+            .quote-author-side { text-align:center; }
           }
         </style>
 
@@ -954,7 +822,7 @@
               <div class="month-year-vi" id="monthYearVi"></div>
               <div class="month-year-en" id="monthYearEn"></div>
             </div>
-            
+
             <div class="top-section">
               <div class="solar-day-large" id="solarDay"></div>
               <div class="quote-author-container">
@@ -966,17 +834,16 @@
                 </div>
               </div>
             </div>
-            
+
             <div class="weekday-festivals-section">
               <div class="festivals-row" id="festivalsRow"></div>
-              
               <div class="weekday-row">
                 <div class="weekday-en" id="weekdayEn"></div>
                 <div class="weekday-separator"></div>
                 <div class="weekday-vi" id="weekdayVi"></div>
               </div>
             </div>
-            
+
             <div class="bottom-section">
               <div class="left-column">
                 <div class="lunar-month-info" id="lunarMonth"></div>
@@ -990,12 +857,12 @@
                   <span class="label-small">Giờ</span><span id="hourCanChi"></span>
                 </div>
               </div>
-              
+
               <div class="center-column">
                 <div class="lunar-day-large" id="lunarDay"></div>
                 <div class="year-can-chi" id="yearCanChi"></div>
               </div>
-              
+
               <div class="gio-hoang-dao-section">
                 <div class="label">Giờ Hoàng Đạo</div>
                 <div class="gio-list" id="gioHoangDao"></div>
@@ -1007,7 +874,7 @@
             <span class="toggle-title">🗓️ Chọn ngày xem</span>
             <span class="toggle-icon" id="toggleIcon">🔽</span>
           </div>
-          
+
           <div class="date-picker" id="datePicker">
             <div class="calendar-type-toggle">
               <button class="type-toggle-btn active" id="toggleSolar">Dương lịch</button>
@@ -1060,7 +927,6 @@
             <button class="goto-btn" id="gotoDate">Xem ngày này</button>
           </div>
 
-          <!-- Popup chi tiết ngày -->
           <div id="ha-lich-popup" class="ha-popup">
             <div class="ha-popup-box">
               <div class="ha-popup-header">
@@ -1084,21 +950,19 @@
       $('toggleSolar')?.addEventListener('click', () => this.toggleCalendarType('solar'));
       $('toggleLunar')?.addEventListener('click', () => this.toggleCalendarType('lunar'));
       $('gotoDate')?.addEventListener('click', () => this.gotoDate());
-      
-      // Popup event listeners
+
       $('solarDay')?.addEventListener('click', () => this.showDayPopup());
       $('popupClose')?.addEventListener('click', () => this.closePopup());
       $('ha-lich-popup')?.addEventListener('click', (e) => {
-        if (e.target.id === 'ha-lich-popup') this.closePopup();
+        if (e.target && e.target.id === 'ha-lich-popup') this.closePopup();
       });
     }
-
 
     toggleDatePicker() {
       this.isDatePickerOpen = !this.isDatePickerOpen;
       const datePicker = this.shadowRoot.getElementById('datePicker');
       const toggleIcon = this.shadowRoot.getElementById('toggleIcon');
-      
+
       if (this.isDatePickerOpen) {
         datePicker.classList.add('open');
         toggleIcon.classList.add('open');
@@ -1110,12 +974,12 @@
 
     toggleCalendarType(type) {
       this.isLunarMode = type === 'lunar';
-      
+
       const solarInputs = this.shadowRoot.getElementById('solarInputs');
       const lunarInputs = this.shadowRoot.getElementById('lunarInputs');
       const toggleSolar = this.shadowRoot.getElementById('toggleSolar');
       const toggleLunar = this.shadowRoot.getElementById('toggleLunar');
-      
+
       if (this.isLunarMode) {
         solarInputs.classList.remove('active');
         lunarInputs.classList.add('active');
@@ -1131,32 +995,28 @@
 
     gotoDate() {
       const $ = (id) => this.shadowRoot.getElementById(id);
-      
+
       if (this.isLunarMode) {
-        const lunarDay = parseInt($('inputLunarDay').value);
-        const lunarMonth = parseInt($('inputLunarMonth').value);
-        const lunarYear = parseInt($('inputLunarYear').value);
-        
+        const lunarDay = parseInt($('inputLunarDay').value, 10);
+        const lunarMonth = parseInt($('inputLunarMonth').value, 10);
+        const lunarYear = parseInt($('inputLunarYear').value, 10);
+
         const solar = convertLunar2Solar(lunarDay, lunarMonth, lunarYear, 0, 7);
-        
         if (solar[0] === 0) {
           alert('Ngày âm lịch không hợp lệ!');
           return;
         }
-        
+
         this.currentDate = new Date(solar[2], solar[1] - 1, solar[0]);
         this.updateCalendar();
         this.toggleDatePicker();
-        
-        // Nếu popup đang mở, cập nhật nội dung popup
+
         const popup2 = $('ha-lich-popup');
-        if (popup2 && popup2.classList.contains('show')) {
-          this.showDayPopup();
-        }
+        if (popup2 && popup2.classList.contains('show')) this.showDayPopup();
       } else {
-        const day = parseInt($('inputDay').value);
-        const month = parseInt($('inputMonth').value);
-        const year = parseInt($('inputYear').value);
+        const day = parseInt($('inputDay').value, 10);
+        const month = parseInt($('inputMonth').value, 10);
+        const year = parseInt($('inputYear').value, 10);
 
         if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 1900 && year <= 2100) {
           const newDate = new Date(year, month - 1, day);
@@ -1164,12 +1024,9 @@
             this.currentDate = newDate;
             this.updateCalendar();
             this.toggleDatePicker();
-            
-            // Nếu popup đang mở, cập nhật nội dung popup
+
             const popup3 = $('ha-lich-popup');
-            if (popup3 && popup3.classList.contains('show')) {
-              this.showDayPopup();
-            }
+            if (popup3 && popup3.classList.contains('show')) this.showDayPopup();
           } else {
             alert('Ngày không hợp lệ!');
           }
@@ -1182,25 +1039,17 @@
     changeDay(delta) {
       this.currentDate.setDate(this.currentDate.getDate() + delta);
       this.updateCalendar();
-      
-      // Nếu popup đang mở, cập nhật nội dung popup
-      const $ = (id) => this.shadowRoot.getElementById(id);
-      const popup = $('ha-lich-popup');
-      if (popup && popup.classList.contains('show')) {
-        this.showDayPopup();
-      }
+
+      const popup = this.shadowRoot.getElementById('ha-lich-popup');
+      if (popup && popup.classList.contains('show')) this.showDayPopup();
     }
 
     gotoToday() {
       this.currentDate = new Date();
       this.updateCalendar();
-      
-      // Nếu popup đang mở, cập nhật nội dung popup
-      const $ = (id) => this.shadowRoot.getElementById(id);
-      const popup = $('ha-lich-popup');
-      if (popup && popup.classList.contains('show')) {
-        this.showDayPopup();
-      }
+
+      const popup = this.shadowRoot.getElementById('ha-lich-popup');
+      if (popup && popup.classList.contains('show')) this.showDayPopup();
     }
 
     updateCalendar() {
@@ -1219,40 +1068,43 @@
       const canChiYear = getCanChiYear(lunarYear);
       const canChiMonth = getCanChiMonth(lunarMonth, lunarYear);
       const canChiDay = getCanChiDay(jd);
-      const canChiHour = CAN[(jd + 9) % 10];
-      
+
+      // ===== GIỜ CAN-CHI: theo GIỜ THỰC TẾ (client time) =====
+      const hourNow = new Date().getHours();
+      const canChiHour = getCanChiHourFromJdAndHour(jd, hourNow);
+
       const gioHoangDao = getGioHoangDao(jd);
       const line1 = gioHoangDao.slice(0, 3).join(', ');
       const line2 = gioHoangDao.slice(3).join(', ');
-      
+
       let lunarMonthName = THANG_AM[lunarMonth];
       if (lunarLeap) lunarMonthName = 'Nhuận ' + lunarMonthName;
-      
+
       const monthDays = getMonthDays(lunarMonth, lunarYear);
       const monthType = monthDays === 30 ? "(Đ)" : "(T)";
-      
+
       const festivals = getFestivals(dd, mm, lunarDay, lunarMonth);
       const quote = this.getQuoteFromSensor();
 
-      const monthsVi = ['Tháng Một', 'Tháng Hai', 'Tháng Ba', 'Tháng Tư', 'Tháng Năm', 'Tháng Sáu', 
-                        'Tháng Bảy', 'Tháng Tám', 'Tháng Chín', 'Tháng Mười', 'Tháng Mười Một', 'Tháng Mười Hai'];
+      const monthsVi = ['Tháng Một', 'Tháng Hai', 'Tháng Ba', 'Tháng Tư', 'Tháng Năm', 'Tháng Sáu',
+        'Tháng Bảy', 'Tháng Tám', 'Tháng Chín', 'Tháng Mười', 'Tháng Mười Một', 'Tháng Mười Hai'];
       const monthsEn = ['January', 'February', 'March', 'April', 'May', 'June',
-                        'July', 'August', 'September', 'October', 'November', 'December'];
+        'July', 'August', 'September', 'October', 'November', 'December'];
 
       const $ = (id) => this.shadowRoot.getElementById(id);
-      
+
       $('monthYearVi').textContent = `${monthsVi[mm - 1]} ${yy}`;
       $('monthYearEn').textContent = monthsEn[mm - 1];
-      
+
       const solarDayEl = $('solarDay');
       solarDayEl.textContent = dd;
       solarDayEl.className = 'solar-day-large';
       if (dayOfWeek === 0) solarDayEl.classList.add('sunday');
       else if (dd === 1) solarDayEl.classList.add('new-day');
-      
+
       $('quoteText').textContent = quote.text;
       $('quoteAuthor').textContent = quote.author;
-      
+
       const weekdayEnEl = $('weekdayEn');
       const weekdayViEl = $('weekdayVi');
       weekdayEnEl.textContent = TUAN_EN[dayOfWeek];
@@ -1263,22 +1115,23 @@
         weekdayEnEl.classList.add('sunday');
         weekdayViEl.classList.add('sunday');
       }
-      
+
       const festivalsRow = $('festivalsRow');
-      if (festivals.length > 0) {
-        festivalsRow.innerHTML = festivals.map(f => `<div class="festival-item">${f}</div>`).join('');
-      } else {
-        festivalsRow.innerHTML = '';
-      }
-      
+      festivalsRow.innerHTML = festivals.length > 0
+        ? festivals.map(f => `<div class="festival-item">${f}</div>`).join('')
+        : '';
+
       $('lunarMonth').textContent = `Tháng ${lunarMonthName} ${monthType}`;
       $('lunarDay').textContent = lunarDay;
       $('monthCanChi').textContent = canChiMonth;
       $('dayCanChi').textContent = canChiDay;
-      $('hourCanChi').textContent = `${canChiHour} ${CHI[0]}`;
+
+      // ===== HIỂN THỊ GIỜ CAN-CHI ĐÚNG =====
+      $('hourCanChi').textContent = canChiHour;
+
       $('yearCanChi').textContent = canChiYear;
       $('gioHoangDao').innerHTML = `${line1}<br>${line2}`;
-      
+
       $('inputDay').value = dd;
       $('inputMonth').value = mm;
       $('inputYear').value = yy;
@@ -1287,10 +1140,8 @@
       $('inputLunarYear').value = lunarYear;
     }
 
-
     closePopup() {
-      const $ = (id) => this.shadowRoot.getElementById(id);
-      const popup = $('ha-lich-popup');
+      const popup = this.shadowRoot.getElementById('ha-lich-popup');
       if (popup) popup.classList.remove('show');
     }
 
@@ -1305,7 +1156,6 @@
         const yy = this.currentDate.getFullYear();
         const dayOfWeek = this.currentDate.getDay();
 
-        // Tính toán dữ liệu
         const lunar = convertSolar2Lunar(dd, mm, yy, 7);
         const lunarDay = lunar[0];
         const lunarMonth = lunar[1];
@@ -1316,105 +1166,181 @@
         const canChiYear = getCanChiYear(lunarYear);
         const canChiMonth = getCanChiMonth(lunarMonth, lunarYear);
         const canChiDay = getCanChiDay(jd);
-        const canChiHour = CAN[(jd + 9) % 10];
 
-        // Giờ Hoàng Đạo
+        // ===== GIỜ CAN-CHI TRONG POPUP: theo giờ thực tế =====
+        const hourNow = new Date().getHours();
+        const canChiHour = getCanChiHourFromJdAndHour(jd, hourNow);
+
+        const tietKhi = getTietKhi(jd);
         const gioHoangDao = getGioHoangDao(jd);
         const gioHDString = gioHoangDao.join(', ');
+        const gioHacDao = getGioHacDao(jd);
+        const thanSat = getThanSat(jd);
 
-        // Tên tháng âm
         let lunarMonthName = THANG_AM[lunarMonth];
         if (lunarLeap) lunarMonthName = 'Nhuận ' + lunarMonthName;
 
         const monthDays = getMonthDays(lunarMonth, lunarYear);
         const monthType = monthDays === 30 ? "(Đ)" : "(T)";
 
-        // Lễ hội
         const festivals = getFestivals(dd, mm, lunarDay, lunarMonth);
         let festivalString = '';
-        if (festivals.length > 0) {
-          festivalString = festivals.map(f => `🎉 ${f}`).join('<br>');
-        }
+        if (festivals.length > 0) festivalString = festivals.map(f => `🎉 ${f}`).join('<br>');
 
-        // Tạo HTML
-        let res = `<div class="lunar-popup-detail" style="font-family: sans-serif; font-size: 1.1em; color: var(--primary-text-color); padding-bottom: 10px;">`;
-        
-        // Header
+        const chiYearIndex = (lunarYear + 8) % 12;
+        const conGiap = CHI_EMOJI[chiYearIndex];
+
+        const khoiGioTy = getKhoiGioTyFromJd(jd);
+
+        const danhGia = (thanSat.sao && thanSat.sao.info && thanSat.sao.info.danhGia) ? thanSat.sao.info.danhGia : "";
+        let bgDanhGia = "rgba(123, 31, 162, 0.9)";
+        if (danhGia.includes("Tốt") || danhGia.includes("Kiết")) bgDanhGia = "rgba(76, 175, 80, 0.9)";
+        else if (danhGia.includes("Xấu") || danhGia.includes("Hung")) bgDanhGia = "rgba(244, 67, 54, 0.9)";
+
+        let res = `<div class="lunar-popup-detail" style="font-family: sans-serif; font-size: 0.9em; color: var(--primary-text-color); padding-bottom: 10px;">`;
+
         res += `
-            <div style="text-align:center; margin-bottom:15px;">
-                <div style="font-size:1.5em; font-weight:bold; color:#ffff99;">Ngày ${dd} tháng ${mm} năm ${yy}</div>
-                <div style="font-size:1.1em; opacity:0.9; margin-top:5px;">${TUAN_VI[dayOfWeek]}</div>
+          <div style="text-align:center; margin-bottom:12px; border-bottom: 2px solid rgba(123, 31, 162, 0.3); padding-bottom:10px;">
+            <div style="font-size:1.3em; font-weight:bold; color:#ffff99; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+              Ngày ${dd}/${mm}/${yy}
             </div>
+            <div style="font-size:0.95em; opacity:0.9; margin-top:4px; font-weight:500;">
+              ${TUAN_VI[dayOfWeek]}
+            </div>
+          </div>
         `;
 
-        // Lịch âm & Can Chi
         res += `
-            <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 12px; margin-bottom: 15px;">
-                <table style="width:100%; border-collapse: collapse;">
-                    <tr style="border-bottom: 1px solid rgba(125,125,125,0.2);">
-                        <td style="padding:8px 0; opacity:0.8; width:40%;">Âm lịch:</td>
-                        <td style="text-align:right;"><b style="color:#ffff99;">${lunarDay}/${lunarMonth}/${lunarYear} ${lunarLeap?'(Nhuận)':''}</b></td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid rgba(125,125,125,0.2);">
-                        <td style="padding:8px 0; opacity:0.8;">Tháng âm:</td>
-                        <td style="text-align:right;"><b style="color:#ffff99;">${lunarMonthName} ${monthType}</b></td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid rgba(125,125,125,0.2);">
-                        <td style="padding:8px 0; opacity:0.8;">Can Chi Năm:</td>
-                        <td style="text-align:right;"><b style="color:#ffff99;">${canChiYear}</b></td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid rgba(125,125,125,0.2);">
-                        <td style="padding:8px 0; opacity:0.8;">Can Chi Tháng:</td>
-                        <td style="text-align:right;"><b style="color:#ffff99;">${canChiMonth}</b></td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid rgba(125,125,125,0.2);">
-                        <td style="padding:8px 0; opacity:0.8;">Can Chi Ngày:</td>
-                        <td style="text-align:right;"><b style="color:#ffff99;">${canChiDay}</b></td>
-                    </tr>
-                    <tr>
-                        <td style="padding:8px 0; opacity:0.8;">Khởi giờ:</td>
-                        <td style="text-align:right;"><b style="color:#ffff99;">${canChiHour} Tý</b></td>
-                    </tr>
-                </table>
-            </div>
+          <div style="background: linear-gradient(135deg, rgba(123, 31, 162, 0.15), rgba(76, 175, 80, 0.15)); border-radius: 10px; padding: 12px; margin-bottom: 12px; border: 1px solid rgba(123, 31, 162, 0.2);">
+            <table style="width:100%; border-collapse: collapse; font-size:0.95em;">
+              <tr style="border-bottom: 1px solid rgba(125,125,125,0.2);">
+                <td style="padding:6px 0; opacity:0.85; width:40%;">📅 Âm lịch:</td>
+                <td style="text-align:right;"><b style="color:#ffff99;">${lunarDay}/${lunarMonth}/${lunarYear} ${lunarLeap ? '(Nhuận)' : ''}</b></td>
+              </tr>
+              <tr style="border-bottom: 1px solid rgba(125,125,125,0.2);">
+                <td style="padding:6px 0; opacity:0.85;">🌙 Tháng âm:</td>
+                <td style="text-align:right;"><b style="color:#ffff99;">${lunarMonthName} ${monthType}</b></td>
+              </tr>
+              <tr style="border-bottom: 1px solid rgba(125,125,125,0.2);">
+                <td style="padding:6px 0; opacity:0.85;">🐉 Năm Can Chi:</td>
+                <td style="text-align:right;"><b style="color:#ffff99;">${canChiYear} ${conGiap}</b></td>
+              </tr>
+              <tr style="border-bottom: 1px solid rgba(125,125,125,0.2);">
+                <td style="padding:6px 0; opacity:0.85;">📆 Tháng Can Chi:</td>
+                <td style="text-align:right;"><b style="color:#ffff99;">${canChiMonth}</b></td>
+              </tr>
+              <tr style="border-bottom: 1px solid rgba(125,125,125,0.2);">
+                <td style="padding:6px 0; opacity:0.85;">📋 Ngày Can Chi:</td>
+                <td style="text-align:right;"><b style="color:#ffff99;">${canChiDay}</b></td>
+              </tr>
+              <tr style="border-bottom: 1px solid rgba(125,125,125,0.2);">
+                <td style="padding:6px 0; opacity:0.85;">🕒 Giờ Can Chi:</td>
+                <td style="text-align:right;"><b style="color:#ffff99;">${canChiHour}</b></td>
+              </tr>
+              <tr style="border-bottom: 1px solid rgba(125,125,125,0.2);">
+                <td style="padding:6px 0; opacity:0.85;">🌸 Tiết khí:</td>
+                <td style="text-align:right;"><b style="color:#ffff99;">${tietKhi}</b></td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0; opacity:0.85;">⭐ Giờ H.Đạo:</td>
+                <td style="text-align:right; font-size:0.85em;"><b>${gioHDString}</b></td>
+              </tr>
+            </table>
+          </div>
         `;
 
-        // Giờ Hoàng Đạo
+        res += `<div style="background: rgba(0,0,0,0.4); color: #fff; border-radius: 10px; padding: 12px; box-shadow: 0 3px 6px rgba(0,0,0,0.2);">`;
+
         res += `
-            <div style="background: rgba(123, 31, 162, 0.2); border-radius: 8px; padding: 12px; margin-bottom: 15px; border: 1px solid rgba(123, 31, 162, 0.3);">
-                <div style="font-weight:bold; margin-bottom:8px; color:#ffff99;">⭐ Giờ Hoàng Đạo:</div>
-                <div style="font-size:1.05em; line-height:1.6;">${gioHDString}</div>
+          <div style="margin-bottom: 10px; border-bottom: 1px dashed rgba(255,255,255,0.2); padding-bottom: 8px;">
+            <div style="font-weight:bold; margin-bottom:3px; font-size:0.95em;">🌑 Giờ hắc đạo:</div>
+            <div style="opacity:0.9; padding-left: 18px; font-size:0.85em; line-height:1.4;">${gioHacDao}</div>
+          </div>`;
+
+        res += `
+          <div style="margin-bottom: 10px; border-bottom: 1px dashed rgba(255,255,255,0.2); padding-bottom: 8px;">
+            <div style="margin-bottom: 5px;">
+              <span style="font-weight:bold; font-size:0.95em;">${thanSat.truc.emoji} Trực:</span>
+              <span style="background-color:rgba(76, 175, 80, 0.9); color:#fff; font-weight:bold; padding:2px 10px; border-radius:12px; font-size:0.85em; margin-left:5px;">
+                ${thanSat.truc.name}
+              </span>
             </div>
+            <div style="padding-left: 5px; line-height:1.5; font-size: 0.85em;">
+              <div>✅ <span style="opacity:0.85;">Tốt:</span> ${thanSat.truc.info.tot}</div>
+              <div style="margin-top:3px;">❌ <span style="opacity:0.85;">Xấu:</span> <span style="color:#ffcc80;">${thanSat.truc.info.xau}</span></div>
+            </div>
+          </div>`;
+
+        res += `
+          <div style="margin-bottom: 10px; border-bottom: 1px dashed rgba(255,255,255,0.2); padding-bottom: 8px;">
+            <div style="font-weight:bold; font-size:0.95em;">🌟 Ngũ hành:</div>
+            <div style="padding-left: 18px; opacity:0.9; margin-top:3px; font-size:0.85em;">${thanSat.napAm}</div>
+          </div>`;
+
+        res += `
+          <div>
+            <div style="margin-bottom: 6px;">
+              <span style="font-weight:bold; font-size:0.95em;">${thanSat.sao.emoji} Nhị Thập Bát Tú:
+                <span style="background-color:${bgDanhGia}; color:#fff; padding:2px 10px; border-radius:12px; margin-left:5px; font-size:0.85em;">${thanSat.sao.name}</span>
+              </span>
+            </div>
+
+            <div style="font-style:italic; color:#ffff99; margin-bottom:6px; padding-left: 6px; font-size:0.85em;">
+              ${(thanSat.sao.info.tenNgay || '')} - ${(thanSat.sao.info.danhGia || '')}
+            </div>
+
+            <div style="padding-left: 6px; line-height:1.5; font-size:0.85em;">
+              <div><b style="color:#fff;">🌟 Tướng tinh:</b> <span style="opacity:0.9;">${thanSat.sao.info.tuongTinh || ''}</span></div>
+              <div style="margin-top:4px;"><b style="color:#fff;">👍 Nên làm:</b> <span style="opacity:0.9;">${thanSat.sao.info.nenLam || ''}</span></div>
+              <div style="margin-top:4px;"><b style="color:#fff;">👎 Kiêng cữ:</b> <span style="color:#ffcc80;">${thanSat.sao.info.kiengCu || ''}</span></div>
+
+              ${thanSat.sao.info.ngoaiLe
+                ? `<div style="margin-top:4px;"><b style="color:#fff;">✨ Ngoại lệ:</b>
+                    <div style="padding-left:12px; opacity:0.9; margin-top:3px; line-height:1.4;">
+                      ${String(thanSat.sao.info.ngoaiLe).replace(/\n/g, '<br>')}
+                    </div>
+                  </div>`
+                : ''}
+            </div>
+
+            ${thanSat.sao.info.tho
+              ? `<div style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.2); text-align:center; font-style:italic; font-family:'Times New Roman', serif; color:#ffff99; white-space:pre-wrap; font-size:0.8em; line-height:1.5;">${thanSat.sao.info.tho}</div>`
+              : ''}
+          </div>
         `;
 
-        // Lễ hội (nếu có)
+        res += `</div>`;
+
         if (festivalString) {
           res += `
-            <div style="background: rgba(76, 175, 80, 0.2); border-radius: 8px; padding: 12px; border: 1px solid rgba(76, 175, 80, 0.3);">
-                <div style="font-weight:bold; margin-bottom:8px; color:#ffff99;">🎊 Ngày lễ:</div>
-                <div style="line-height:1.8;">${festivalString}</div>
+            <div style="background: rgba(76, 175, 80, 0.2); border-radius: 10px; padding: 12px; margin-top:12px; border: 1px solid rgba(76, 175, 80, 0.3);">
+              <div style="font-weight:bold; margin-bottom:8px; color:#ffff99; font-size:0.95em;">🎊 Ngày lễ:</div>
+              <div style="line-height:1.7; font-size:0.85em;">${festivalString}</div>
             </div>
           `;
         }
 
+        res += `<div style="text-align:center; font-size:0.8em; opacity:0.65; margin-top:12px; padding-top:10px; border-top:1px dashed rgba(255,255,255,0.2);">
+          ⏰ Khởi giờ Tý: <b style="color:#ffff99;">${khoiGioTy}</b>
+        </div>`;
+
         res += `</div>`;
 
-        // Update DOM
         const titleEl = $('ha-popup-title');
         const contentEl = $('ha-popup-content');
-        
-        if(titleEl) titleEl.innerText = `Chi tiết ngày ${dd}/${mm}`;
-        if(contentEl) contentEl.innerHTML = res;
+        if (titleEl) titleEl.innerText = `Chi tiết`;
+        if (contentEl) contentEl.innerHTML = res;
 
         popup.classList.add('show');
-
-      } catch(e) {
+      } catch (e) {
+        // eslint-disable-next-line no-console
         console.error("Lỗi Popup:", e);
-        const contentEl = $('ha-popup-content');
-        if(contentEl) contentEl.innerHTML = `<div style="color:red; padding:15px; text-align:center;">Có lỗi xảy ra: ${e.message}</div>`;
+        const contentEl = this.shadowRoot.getElementById('ha-popup-content');
+        if (contentEl) contentEl.innerHTML = `<div style="color:red; padding:15px; text-align:center;">Có lỗi xảy ra: ${e.message}</div>`;
         popup.classList.add('show');
       }
     }
+
     static getConfigElement() {
       return document.createElement('lich-am-duong-card-editor');
     }
@@ -1429,17 +1355,18 @@
   }
 
   customElements.define('lich-am-duong-card', LichAmDuongCard);
-  
+
   window.customCards = window.customCards || [];
   window.customCards.push({
     type: 'lich-am-duong-card',
     name: 'Lịch Âm Dương Việt Nam Enhanced',
-    description: 'Lịch bloc âm dương với background opacity và toggle chọn ngày',
+    description: 'Lịch bloc âm dương với background opacity và toggle chọn ngày + giờ Can-Chi theo giờ thực tế',
     preview: true
   });
 
+  // eslint-disable-next-line no-console
   console.info(
-    '%c LỊCH-ÂM-DƯƠNG-CARD %c Version 2.1 Fixed - Display Stable ',
+    '%c LỊCH-ÂM-DƯƠNG-CARD %c Version 2.2 - Giờ Can-Chi theo giờ thực tế ',
     'color: white; background: #7b1fa2; font-weight: 700;',
     'color: #7b1fa2; background: white; font-weight: 700;'
   );
