@@ -1,66 +1,132 @@
-# Lịch Âm Dương Việt Nam - Home Assistant Custom Card
+# Lịch Âm Dương Việt Nam (Enhanced) – Home Assistant Custom Card
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+[![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz/)
+![Version](https://img.shields.io/badge/version-2.3-blue.svg)
 
-Lịch âm dương Việt Nam hiển thị giống như lịch ngày xưa.
+Thẻ (custom card) hiển thị **lịch Dương / Âm Việt Nam** theo kiểu “lịch bloc” truyền thống, kèm Can Chi – Giờ Hoàng Đạo – Tiết khí – Ngày lễ… và popup xem chi tiết.
 
-## Tính năng
+> Card name: `custom:lich-am-duong-card` (element: `lich-am-duong-card`).  
+> Phiên bản trong file JS: **2.3 (Feb 2026)** – tự thích ứng màu chữ theo theme sáng/tối.  
 
-### 📅 Thông tin Dương lịch
-- Ngày tháng năm Dương lịch
-- Thứ trong tuần (Tiếng Việt)
-- Các ngày lễ Việt Nam và Quốc tế
+---
 
-### 🌙 Thông tin Âm lịch
-- Ngày tháng năm Âm lịch
-- Can Chi (Ngày, Tháng, Năm)
-- 12 Con Giáp với emoji
-- Giờ Hoàng Đạo
-- Các ngày lễ Âm lịch (Tết, Rằm, Vu Lan, Trung Thu...)
+## ✨ Tính năng chính
 
+- **Dương lịch**
+  - Ngày / tháng / năm, thứ trong tuần (Tiếng Việt)
+  - **Ngày lễ dương lịch** (VN & quốc tế)
 
-### ✨ Tính năng tương tác
-- Chuyển ngày <img width="102" height="38" alt="image" src="https://github.com/user-attachments/assets/3d0e3822-b87f-4aac-b396-5b1ebdf2fe96" />
-và <img width="101" height="36" alt="image" src="https://github.com/user-attachments/assets/9c8d8c7d-67be-49a0-8951-342e8bbd2c86" />
-- Reset về hôm nay <img width="99" height="34" alt="image" src="https://github.com/user-attachments/assets/77ab40c1-4773-45df-9dad-b3b469ee1e77" />
-- Click vào ngày để xem chi tiết popup
-- Chọn ngày để xem gồm âm hoặc dương
-## Cài đặt
-1. Tải file lich-block-am-duong.js
-2. Upload vào folder www
-3. Vào bảng điều khiển hoặc Dashboard
-4. Kích vào 3 chấm góc trên cùng bên phải, chọn tài nguyên hoặc Resources
-5. Thêm tài nguyên hoặc add Resources
-6. Url: /local/lich-block-am-duong.js và Resource type tự động là Loại tài nguyên (JavaScript) module (Mô-đun JavaScript)
-7. Tạo thẻ thủ công (custom card)
- ```
+- **Âm lịch**
+  - Ngày / tháng (tên tháng âm) / năm âm
+  - **Can Chi** (ngày – tháng – năm)
+  - **12 con giáp** kèm emoji
+  - **Giờ Hoàng Đạo**
+  - **Tiết khí**
+  - **Ngày lễ âm lịch** (Tết, Rằm, Vu Lan, Trung Thu…)
+
+- **Tương tác**
+  - Nút **lùi/tiến ngày**, **về hôm nay**
+  - **Chọn ngày** (chuyển nhập theo dương hoặc âm)
+  - **Bấm vào ngày** để mở **popup chi tiết** (nên làm/kiêng cữ, sao, ngày lễ…)
+
+- **Giao diện**
+  - Hỗ trợ **background normal / transparent**
+  - Tuỳ chỉnh **độ trong suốt nền**
+  - Tuỳ chỉnh **viền** (màu/độ dày/glow)
+  - **Tự thích ứng màu** theo theme sáng/tối của Home Assistant
+
+---
+
+## ✅ Yêu cầu
+
+- Home Assistant có **Lovelace Dashboards**.
+- Cài theo dạng **Resource (JavaScript module)** hoặc qua **HACS (Custom repository)**.
+
+---
+
+## 📦 Cài đặt
+
+### Cách 1: Cài thủ công (khuyến nghị khi test nhanh)
+
+1. Copy file `lich-block-am-duong.js` vào:
+   - `config/www/lich-block-am-duong.js`
+2. Vào **Settings → Dashboards → Resources** (hoặc *Cài đặt → Bảng điều khiển → Tài nguyên*)
+3. **Add resource**
+   - URL: `/local/lich-block-am-duong.js`
+   - Type: **JavaScript Module**
+4. Reload trình duyệt (Ctrl+F5) hoặc restart Home Assistant nếu cần.
+
+### Cách 2: Cài qua HACS (Custom repository)
+
+1. Vào **HACS → (⋮) → Custom repositories**
+2. Thêm repo của bạn (ví dụ): `https://github.com/TriTue2011/am-lich-lunar`
+3. Chọn Category: **Dashboard**
+4. Quay lại HACS, tìm `Block Âm Dương Việt Nam` và **Download**
+5. Reload trình duyệt (Ctrl+F5)
+
+---
+
+## 🧩 Cấu hình (Lovelace)
+
+### Cấu hình tối thiểu
+
+```yaml
+type: custom:lich-am-duong-card
+```
+
+### Ví dụ nền thường + quote từ sensor
+
+```yaml
 type: custom:lich-am-duong-card
 background: normal
 quote_entity: sensor.daily_quote
- ```
-or
- ```
+```
+
+### Ví dụ nền trong suốt + opacity
+
+```yaml
 type: custom:lich-am-duong-card
-background: transparent 
-background_opacity: 0.3  # 0-1
-quote_entity: sensor.daily_quote  # optional
- ```
-10. Restart Home Assistant
-11. Clear browser cache (Ctrl + F5)
-Cài qua HACS
-   - Vào HACS
-   - Vào 3 Chấm góc trên bên phải
-   - Chọn **Custom repositories**
-     
-     <img width="303" height="437" alt="image" src="https://github.com/user-attachments/assets/71489d94-bc79-4f12-9941-9c1ce56152e8" />
+background: transparent
+background_opacity: 0.3  # 0.0 → 1.0
+quote_entity: sensor.daily_quote  # (tuỳ chọn)
+```
 
-   - Điền `https://github.com/TriTue2011/am-lich-lunar` và chọn Dashboard và nhấn Add
-     
-     <img width="572" height="459" alt="image" src="https://github.com/user-attachments/assets/de9880d7-6652-49ae-85bf-7b73c59e2cdc" />
+### Tùy chọn nâng cao (theo `getStubConfig()`)
 
+| Tuỳ chọn | Kiểu | Mặc định | Mô tả |
+|---|---:|---:|---|
+| `background` | string | `normal` | `normal` hoặc `transparent` |
+| `background_opacity` | number | `0` | Độ trong suốt nền (0–1) |
+| `quote_entity` | string | `""` | Entity chứa câu quote (state/attributes tuỳ sensor) |
+| `border_color` | string | `""` | Màu viền (vd `#7b1fa2`) |
+| `border_width` | number | `0` | Độ dày viền (px) |
+| `border_glow` | boolean | `true` | Bật/tắt hiệu ứng glow của viền |
 
-   - Quay lại HACS và nhập ô tìm kiếm `Block Âm Dương Việt Nam` và Tải về
-     
-     <img width="733" height="236" alt="image" src="https://github.com/user-attachments/assets/54c9dc47-6606-4f58-81b6-7bf23be64a34" />
+> Nếu `quote_entity` trống, card sẽ dùng bộ quote mặc định trong file JS.
+
+---
+
+## 🛠️ Troubleshooting
+
+- **Không thấy card / báo “Custom element doesn't exist”**
+  - Kiểm tra đã add Resource đúng URL `/local/lich-block-am-duong.js`
+  - Kiểm tra Resource type là **JavaScript Module**
+  - Ctrl+F5 để xóa cache (đặc biệt khi bạn vừa cập nhật file JS)
+
+- **Cập nhật version mà không đổi**
+  - Trình duyệt còn cache: Ctrl+F5 hoặc mở tab ẩn danh để test
+  - Nếu dùng HACS: update trong HACS rồi reload
+
+---
+
+## 🙏 Credits
+
+- Phát triển dựa trên code của **Nguyễn Tiến Khải** (đã được ghi chú trong file JS).
+- Bản Enhanced: tối ưu UI, bổ sung tương tác & tự thích ứng theme.
+
+---
+
+## 📄 License
+
+MIT License (xem file `LICENSE`).
 
