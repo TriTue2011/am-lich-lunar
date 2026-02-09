@@ -1,8 +1,7 @@
-// Lịch Âm Dương Việt Nam - Enhanced Version (FIXED)
+// Lịch Âm Dương Việt Nam - Enhanced Version (FIXED - Auto Theme Color)
 // Phát triển dựa trên code của Nguyễn Tiến Khải
-// Version: 2.2 - February 2026 - FIX Giờ Can-Chi theo giờ thực tế
-// Fix: Giờ Can-Chi lấy theo GIỜ HIỆN TẠI (không cần phút) + Can giờ phụ thuộc Can ngày của NGÀY ĐANG XEM
-// Fix: Popup + UI đồng bộ, auto refresh mỗi phút để qua giờ mới tự cập nhật
+// Version: 2.3 - February 2026 - FIX Auto color adaptation for light/dark themes
+// Fix: Tự động thích ứng màu chữ với theme sáng/tối của Home Assistant
 
 (function () {
   'use strict';
@@ -92,7 +91,6 @@
   const NGAY_LE_AL = ["1/1", "15/1", "3/3", "10/3", "15/4", "5/5", "7/7", "15/7", "15/8", "9/9", "10/10", "15/10", "23/12"];
   const NGAY_LE_AL_STRING = ["Tết Nguyên Đán", "Tết Nguyên Tiêu", "Tết Hàn Thực, Thanh Minh", "Giỗ tổ Hùng Vương", "Lễ Phật Đản", "Tết Đoan Ngọ", "Lễ Thất Tịch", "Lễ Vu Lan", "Tết Trung Thu", "Tết Trùng Cửu", "Tết Trùng Thập", "Tết Hạ Nguyên", "Ông Táo Về Trời"];
 
-  // ===== BỔ SUNG DỮ LIỆU CHO POPUP =====
   const TIET_KHI = [
     "Xuân Phân", "Thanh Minh", "Cốc Vũ", "Lập Hạ", "Tiểu Mãn", "Mang Chủng",
     "Hạ Chí", "Tiểu Thử", "Đại Thử", "Lập Thu", "Xử Thử", "Bạch Lộ",
@@ -130,7 +128,6 @@
     "Tinh": "⭐", "Trương": "📜", "Dực": "🪽", "Chẩn": "🩺"
   };
 
-  // ===== NHI THẬP BÁT TÚ (GIỮ NGUYÊN DỮ LIỆU BẠN ĐƯA) =====
   const NHI_THAP_BAT_TU = {
     "Giác": { tenNgay: "Giác Mộc Giao", danhGia: "Tốt (Bình Tú)", tuongTinh: "Tướng tinh con Giao Long", nenLam: "Mọi việc tạo tác đều đặng được vinh xương và tấn lợi. Việc hôn nhân hay cưới gả sinh con quý tử. Công danh thăng tiến, khoa cử đỗ đạt cao.", kiengCu: "Chôn cất hoạn nạn phải ba năm. Dù xây đắp mộ phần hay sửa chữa mộ phần ắt có người chết.", ngoaiLe: "Sao Giác trúng vào ngày Dần là Đăng Viên mang ý nghĩa được ngôi vị cao cả, hay mọi sự đều tốt đẹp. Sao Giác trúng vào ngày Ngọ là Phục Đoạn Sát: rất kỵ trong việc chôn cất, thừa kế, chia lãnh gia tài, xuất hành và cả khởi công lò nhuộm hoặc lò gốm.", tho: "Giác tinh tọa tác chủ vinh xương\nNgoại tiến điền tài cập nữ lang\nGiá thú hôn nhân sinh quý tử\nVăn nhân cập đệ kiến Quân vương" },
     "Cang": { tenNgay: "Cang Kim Long", danhGia: "Xấu (Hung Tú)", tuongTinh: "Tướng tinh con Rồng", nenLam: "Công việc liên quan đến cắt may áo màn sẽ đặng nhiều lộc ăn.", kiengCu: "Chôn cất bị Trùng tang. Nếu cưới gả e rằng phòng không giá lạnh. Nếu tranh đấu kiện tụng thì lâm bại. Nếu khởi dựng nhà cửa chết con đầu.", ngoaiLe: "Sao Cang nhằm vào ngày Rằm là Diệt Một Nhật: Cữ làm rượu, thừa kế sự nghiệp, lập lò gốm, lò nhuộm hay vào làm hành chính, thứ nhất đi thuyền chẳng khỏi nguy hại.", tho: "Can tinh tạo tác Trưởng phòng đường\nThập nhật chi trung chủ hữu ương\nĐiền địa tiêu ma, quan thất chức" },
@@ -162,8 +159,6 @@
     "Chẩn": { tenNgay: "Chẩn Thủy Dẫn", danhGia: "Tốt (Kiết Tú)", tuongTinh: "Tướng tinh con Giun", nenLam: "Xây dựng, gắn cửa, kê gác, chôn cất đều tốt.", kiengCu: "Động thổ, cưới gả không hạp.", ngoaiLe: "Tại Hợi đăng viên tốt nhất.", tho: "Chẩn tinh lâm thủy tạo long cung\nĐại đại vi quan thụ sấm phong" }
   };
 
-
-  // ===== BỔ SUNG: HÀM GIẢI MÃ DỮ LIỆU TK21/TK22 =====
   function decodeLunarYear(yy, k) {
     const monthLengths = [29, 30];
     const regularMonths = [];
@@ -290,19 +285,15 @@
     return INT(L / PI * 6);
   }
 
-
-  // ===== HÀM getMonthDays ĐÃ SỬA (sử dụng dữ liệu TK21/TK22) =====
   function getMonthDays(mm, yy) {
     const yearInfo = getYearInfo(yy);
     
-    // Tìm tháng trong yearInfo (tháng thường, không phải tháng nhuận)
     for (let i = 0; i < yearInfo.length; i++) {
       if (yearInfo[i].month === mm && yearInfo[i].leap === 0) {
         return yearInfo[i].days;
       }
     }
     
-    // Nếu không tìm thấy, trả về 30 (mặc định)
     return 30;
   }
 
@@ -431,22 +422,14 @@
     return festivals;
   }
 
-  // ===== FIX: GIỜ CAN-CHI THEO GIỜ THỰC TẾ (không cần phút) =====
   function getChiIndexOfHour(hour24) {
-    // 23:00-00:59 = Tý (0), 01-02:59 = Sửu (1), ..., 21-22:59 = Hợi (11)
     return Math.floor(((hour24 + 1) % 24) / 2);
   }
 
   function getCanChiHourFromJdAndHour(jd, hour24) {
-    const dayCanIndex = (jd + 9) % 10;              // Can của NGÀY đang xem
-    const hourChiIndex = getChiIndexOfHour(hour24); // Chi theo GIỜ hiện tại
+    const dayCanIndex = (jd + 9) % 10;
+    const hourChiIndex = getChiIndexOfHour(hour24);
 
-    // Can giờ Tý phụ thuộc Can ngày:
-    // Giáp/Kỷ -> Giáp (0)
-    // Ất/Canh -> Bính (2)
-    // Bính/Tân -> Mậu (4)
-    // Đinh/Nhâm -> Canh (6)
-    // Mậu/Quý -> Nhâm (8)
     const START_CAN_TY = [0, 2, 4, 6, 8, 0, 2, 4, 6, 8];
     const hourCanIndex = (START_CAN_TY[dayCanIndex] + hourChiIndex) % 10;
 
@@ -459,7 +442,6 @@
     return `${CAN[START_CAN_TY[dayCanIndex]]} Tý`;
   }
 
-  // ===== HÀM TÍNH TOÁN CHO POPUP =====
   function getTietKhi(jd) {
     const T = (jd - 2451545.0) / 36525;
     const T2 = T * T;
@@ -533,7 +515,7 @@
       this.isLunarMode = false;
       this._isRendered = false;
       this.backgroundOpacity = 0;
-      this._clockTimer = null; // auto refresh
+      this._clockTimer = null;
     }
 
     setConfig(config) {
@@ -545,6 +527,10 @@
       if (config.background === 'transparent' && this.backgroundOpacity === 0) {
         this.backgroundOpacity = 1;
       }
+      // Thêm config cho border
+      this.borderColor = config.border_color || '';
+      this.borderWidth = config.border_width || 0;
+      this.borderGlow = config.border_glow !== false; // mặc định true
     }
 
     set hass(hass) {
@@ -563,7 +549,6 @@
       this.setupEventListeners();
       this.updateCalendar();
 
-      // Auto refresh mỗi phút để giờ Can-Chi đổi đúng khi qua giờ mới
       this._clockTimer && clearInterval(this._clockTimer);
       this._clockTimer = setInterval(() => {
         this.updateCalendar();
@@ -592,7 +577,7 @@
     render() {
       const bgOpacity = this.backgroundOpacity;
       const isTransparent = bgOpacity > 0;
-
+      const internalBorderColor = this.getInternalBorderColor(); // THÊM DÒNG NÀY
       this.shadowRoot.innerHTML = `
         <style>
           :host { display:block !important; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; position:relative !important; }
@@ -603,8 +588,7 @@
           .calendar-bloc {
             background: ${isTransparent ? `rgba(255, 255, 255, ${1 - bgOpacity})` : 'white'};
             border-radius:12px;
-            box-shadow:${isTransparent ? 'none' : '0 20px 60px rgba(0, 0, 0, 0.3)'};
-            ${isTransparent ? 'border: 1px solid rgba(255, 255, 255, 0.3);' : ''}
+            ${this.getBorderStyle()}
             overflow:hidden; position:relative; z-index:1;
             display:block !important; visibility:visible !important;
           }
@@ -616,21 +600,31 @@
 
           .header-controls { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:6px; }
 
+
           .nav-button {
             background:rgba(255,255,255,0.2);
             border:1px solid rgba(255,255,255,0.3);
-            color:white; padding:4px 8px; border-radius:12px;
+            color:${isTransparent ? 'var(--primary-text-color, white)' : 'white'};
+            padding:4px 8px; border-radius:12px;
             cursor:pointer; font-weight:600;
             transition:all 0.3s; user-select:none;
           }
           .nav-button:hover { background:rgba(255,255,255,0.3); transform:scale(1.05); }
-
-          .today-button { background:rgba(255,255,255,0.9); color:#7b1fa2; }
+            
+          .today-button { 
+            background:rgba(255,255,255,0.9); 
+            color:${isTransparent ? 'var(--accent-color, #7b1fa2)' : '#7b1fa2'};
+          }
           .today-button:hover { background:white; }
 
-          .month-year-vi { font-size:1em; font-weight:bold; }
-          .month-year-en { font-size:0.7em; opacity:0.9; }
-
+          .month-year-vi { 
+            font-size:1em; font-weight:bold;
+            color:${isTransparent ? 'var(--primary-text-color, white)' : 'white'};
+          }
+          .month-year-en { 
+            font-size:0.7em; opacity:0.9;
+            color:${isTransparent ? 'var(--primary-text-color, white)' : 'white'};
+          }
           .top-section {
             display:flex; flex-direction:column;
             padding:5px 8px 3px 8px; gap:8px; align-items:center;
@@ -639,9 +633,9 @@
 
           .solar-day-large {
             font-size:4em; font-weight:bold;
-            color:${isTransparent ? '#fff' : '#333'};
+            color:${isTransparent ? 'var(--primary-text-color, #333)' : '#333'};
             line-height:1;
-            text-shadow:${isTransparent ? '2px 2px 8px rgba(0,0,0,0.5)' : '2px 2px 4px rgba(0,0,0,0.1)'};
+            text-shadow:${isTransparent ? '0 1px 3px rgba(0,0,0,0.15)' : '2px 2px 4px rgba(0,0,0,0.1)'};
             cursor:pointer; transition:transform 0.2s;
           }
           .solar-day-large:hover { transform:scale(1.05); }
@@ -655,11 +649,11 @@
             display:flex; flex-direction:column; gap:8px;
           }
           .quote-text {
-            font-style:italic; color:${isTransparent ? '#fff' : '#333'};
+            font-style:italic; color:${isTransparent ? 'var(--primary-text-color, #333)' : '#333'};
             line-height:1.6; font-size:1em; text-align:center;
           }
           .author-section { display:flex; justify-content:flex-end; padding-right:5%; }
-          .quote-author-side { color:${isTransparent ? '#fff' : '#7b1fa2'}; font-weight:600; font-size:0.7em; text-align:right; }
+          .quote-author-side { color:${isTransparent ? 'var(--primary-text-color, #7b1fa2)' : '#7b1fa2'}; font-weight:600; font-size:0.7em; text-align:right; }
 
           .weekday-festivals-section {
             padding:8px 12px;
@@ -682,14 +676,14 @@
           .weekday-row {
             display:grid; grid-template-columns:1fr auto 1fr;
             align-items:center; gap:8px;
-            border-top:${isTransparent ? 'none' : '1px solid #e0e0e0'};
+            border-top:1px solid ${internalBorderColor};
             padding-top:15px;
           }
-          .weekday-en { font-size:1.5em; font-weight:600; color:${isTransparent ? '#fff' : '#333'}; text-align:center; }
+          .weekday-en { font-size:1.5em; font-weight:600; color:${isTransparent ? 'var(--primary-text-color, #333)' : '#333'}; text-align:center; }
           .weekday-en.sunday { color:#e91e63; }
-          .weekday-vi { font-size:1.8em; font-weight:bold; color:${isTransparent ? '#fff' : '#555'}; text-align:center; }
+          .weekday-vi { font-size:1.8em; font-weight:bold; color:${isTransparent ? 'var(--secondary-text-color, #555)' : '#555'}; text-align:center; }
           .weekday-vi.sunday { color:#e91e63; }
-          .weekday-separator { width:1px; height:24px; background:${isTransparent ? 'rgba(255,255,255,0.3)' : '#e0e0e0'}; }
+          .weekday-separator { width:1px; height:24px; background:${internalBorderColor}; }
 
           .bottom-section {
             display:grid; grid-template-columns:1fr auto 1fr;
@@ -702,13 +696,13 @@
 
           .lunar-month-info {
             font-size:0.8em; font-weight:600;
-            color:${isTransparent ? '#fff' : '#7b1fa2'};
+            color:${isTransparent ? 'var(--primary-text-color, #7b1fa2)' : '#7b1fa2'};
             margin-bottom:6px; text-align:center;
             min-height:30px; display:flex; align-items:center; justify-content:center;
           }
 
           .can-chi-info {
-            font-size:0.7em; color:${isTransparent ? '#fff' : '#555'};
+            font-size:0.7em; color:${isTransparent ? 'var(--secondary-text-color, #555)' : '#555'};
             display:flex; align-items:center; gap:8px;
           }
 
@@ -721,13 +715,13 @@
 
           .center-column { text-align:center; display:flex; flex-direction:column; align-items:center; gap:6px; }
           .lunar-day-large {
-            font-size:4em; font-weight:bold; color:${isTransparent ? '#fff' : '#333'};
-            line-height:1; text-shadow:${isTransparent ? '2px 2px 6px rgba(0,0,0,0.5)' : '2px 2px 4px rgba(0,0,0,0.1)'};
+            font-size:4em; font-weight:bold; color:${isTransparent ? 'var(--primary-text-color, #333)' : '#333'};
+            line-height:1; text-shadow:${isTransparent ? '0 1px 3px rgba(0,0,0,0.15)' : '2px 2px 4px rgba(0,0,0,0.1)'};
           }
 
           .year-can-chi {
             font-size:1em; font-weight:600;
-            color:${isTransparent ? '#fff' : '#7b1fa2'};
+            color:${isTransparent ? 'var(--primary-text-color, #7b1fa2)' : '#7b1fa2'};
             padding:4px 8px;
             background:${isTransparent ? 'rgba(255,255,255,0.2)' : 'rgba(123,31,162,0.1)'};
             border-radius:12px;
@@ -736,26 +730,28 @@
           .gio-hoang-dao-section { text-align:center; display:flex; flex-direction:column; min-width:0; overflow:hidden; }
           .label {
             font-size:0.8em; font-weight:600;
-            color:${isTransparent ? '#fff' : '#7b1fa2'};
+            color:${isTransparent ? 'var(--primary-text-color, #7b1fa2)' : '#7b1fa2'};
             margin-bottom:6px; letter-spacing:1px; text-align:center;
             min-height:30px; display:flex; align-items:center; justify-content:center;
           }
           .gio-list {
-            font-size:0.7em; color:${isTransparent ? '#fff' : '#555'};
+            font-size:0.7em; color:${isTransparent ? 'var(--secondary-text-color, #555)' : '#555'};
             line-height:1.4;
             background:${isTransparent ? 'rgba(255,255,255,0.1)' : '#f8f9fa'};
             padding:6px; border-radius:12px; text-align:center;
           }
 
+
           .date-picker-toggle {
             background:${isTransparent ? 'rgba(123,31,162,0.3)' : 'linear-gradient(135deg, #7b1fa2, #9c27b0)'};
-            color:white; padding:15px 20px; cursor:pointer;
+            color:${isTransparent ? 'var(--primary-text-color, white)' : 'white'};
+            padding:15px 20px; cursor:pointer;
             display:flex; justify-content:space-between; align-items:center;
             transition:all 0.3s; margin-top:10px;
             border-radius:6px 6px 0 0;
-            border:${isTransparent ? '1px solid rgba(255, 255, 255, 0.2)' : 'none'};
+            border:1px solid ${internalBorderColor};
             user-select:none;
-          }
+          }          
           .date-picker-toggle:hover { background:${isTransparent ? 'rgba(123,31,162,0.5)' : 'linear-gradient(135deg, #6a1589, #8b1f9f)'}; }
 
           .toggle-title { font-size:0.8em; font-weight:600; }
@@ -768,7 +764,7 @@
             background:${isTransparent ? 'rgba(255,255,255,0.05)' : 'white'};
             border-radius:0 0 12px 12px;
             opacity:0;
-            border:${isTransparent ? '1px solid rgba(255,255,255,0.2)' : 'none'};
+            border:1px solid ${internalBorderColor};
             border-top:none;
           }
           .date-picker.open { max-height:500px; opacity:1; }
@@ -776,9 +772,9 @@
           .calendar-type-toggle { display:flex; gap:6px; padding:20px 20px 10px 20px; }
           .type-toggle-btn {
             flex:1; padding:6px;
-            border:2px solid ${isTransparent ? 'rgba(255,255,255,0.3)' : '#e0e0e0'};
+            border:2px solid ${internalBorderColor};
             background:${isTransparent ? 'rgba(255,255,255,0.1)' : 'white'};
-            color:${isTransparent ? '#fff' : '#333'};
+            color:${isTransparent ? 'var(--primary-text-color, #333)' : '#333'};
             border-radius:12px;
             cursor:pointer;
             font-size:1em; font-weight:600;
@@ -789,13 +785,13 @@
 
           .date-inputs { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; padding:10px; }
           .date-input-group { display:flex; flex-direction:column; gap:6px; }
-          .date-input-group label { font-size:0.7em; font-weight:600; color:${isTransparent ? '#fff' : '#555'}; }
+          .date-input-group label { font-size:0.7em; font-weight:600; color:${isTransparent ? 'var(--secondary-text-color, #555)' : '#555'}; }
 
           .date-input-group input, .date-input-group select {
             padding:10px;
-            border:1px solid ${isTransparent ? 'rgba(255,255,255,0.3)' : '#e0e0e0'};
+            border:1px solid ${internalBorderColor};
             background:${isTransparent ? 'rgba(255,255,255,0.1)' : 'white'};
-            color:${isTransparent ? '#fff' : '#333'};
+            color:${isTransparent ? 'var(--primary-text-color, #333)' : '#333'};
             border-radius:12px;
             font-size:1em;
             transition:border-color 0.2s;
@@ -878,8 +874,8 @@
                 <button class="nav-button today-button" id="today">📅 Hôm nay</button>
                 <button class="nav-button" id="nextDay">Ngày mai ▶</button>
               </div>
-              <div class="month-year-vi" id="monthYearVi"></div>
               <div class="month-year-en" id="monthYearEn"></div>
+              <div class="month-year-vi" id="monthYearVi"></div>
             </div>
 
             <div class="top-section">
@@ -897,9 +893,9 @@
             <div class="weekday-festivals-section">
               <div class="festivals-row" id="festivalsRow"></div>
               <div class="weekday-row">
-                <div class="weekday-en" id="weekdayEn"></div>
-                <div class="weekday-separator"></div>
                 <div class="weekday-vi" id="weekdayVi"></div>
+                <div class="weekday-separator"></div>
+                <div class="weekday-en" id="weekdayEn"></div>
               </div>
             </div>
 
@@ -998,7 +994,40 @@
         </div>
       `;
     }
-
+    getBorderStyle() {
+      const isTransparent = this.backgroundOpacity > 0;
+      
+      if (this.borderColor && this.borderWidth > 0) {
+        const borderStyle = `border: ${this.borderWidth}px solid ${this.borderColor};`;
+        const boxShadow = this.borderGlow 
+          ? `box-shadow: 0 0 10px ${this.borderColor}, 0 0 20px ${this.borderColor}80;`
+          : `box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);`;
+        return borderStyle + boxShadow;
+      }
+      
+      if (isTransparent) {
+        return 'border: 1px solid var(--divider-color, rgba(127, 127, 127, 0.3)); box-shadow: none;';
+      }
+      
+      return 'box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);';
+    }
+    // Hàm mới để lấy màu đường kẻ nội bộ
+    getInternalBorderColor() {
+      const isTransparent = this.backgroundOpacity > 0;
+      
+      // Nếu có border_color được set, sử dụng nó cho tất cả đường kẻ
+      if (this.borderColor && this.borderWidth > 0) {
+        return this.borderColor;
+      }
+      
+      // Nếu transparent mode, dùng màu mặc định của theme
+      if (isTransparent) {
+        return 'var(--divider-color, rgba(127, 127, 127, 0.3))';
+      }
+      
+      // Mode bình thường
+      return '#e0e0e0';
+    }    
     setupEventListeners() {
       const $ = (id) => this.shadowRoot.getElementById(id);
 
@@ -1128,7 +1157,6 @@
       const canChiMonth = getCanChiMonth(lunarMonth, lunarYear);
       const canChiDay = getCanChiDay(jd);
 
-      // ===== GIỜ CAN-CHI: theo GIỜ THỰC TẾ (client time) =====
       const hourNow = new Date().getHours();
       const canChiHour = getCanChiHourFromJdAndHour(jd, hourNow);
 
@@ -1184,8 +1212,6 @@
       $('lunarDay').textContent = lunarDay;
       $('monthCanChi').textContent = canChiMonth;
       $('dayCanChi').textContent = canChiDay;
-
-      // ===== HIỂN THỊ GIỜ CAN-CHI ĐÚNG =====
       $('hourCanChi').textContent = canChiHour;
 
       $('yearCanChi').textContent = canChiYear;
@@ -1226,7 +1252,6 @@
         const canChiMonth = getCanChiMonth(lunarMonth, lunarYear);
         const canChiDay = getCanChiDay(jd);
 
-        // ===== GIỜ CAN-CHI TRONG POPUP: theo giờ thực tế =====
         const hourNow = new Date().getHours();
         const canChiHour = getCanChiHourFromJdAndHour(jd, hourNow);
 
@@ -1408,7 +1433,10 @@
       return {
         background: 'normal',
         background_opacity: 0,
-        quote_entity: ''
+        quote_entity: '',
+        border_color: '',
+        border_width: 0,
+        border_glow: true        
       };
     }
   }
@@ -1419,13 +1447,13 @@
   window.customCards.push({
     type: 'lich-am-duong-card',
     name: 'Lịch Âm Dương Việt Nam Enhanced',
-    description: 'Lịch bloc âm dương với background opacity và toggle chọn ngày + giờ Can-Chi theo giờ thực tế',
+    description: 'Lịch bloc âm dương với background opacity và toggle chọn ngày + giờ Can-Chi theo giờ thực tế. Auto theme color adaptation.',
     preview: true
   });
 
   // eslint-disable-next-line no-console
   console.info(
-    '%c LỊCH-ÂM-DƯƠNG-CARD %c Version 2.2 - Giờ Can-Chi theo giờ thực tế ',
+    '%c LỊCH-ÂM-DƯƠNG-CARD %c Version 2.3 - Auto Theme Color ',
     'color: white; background: #7b1fa2; font-weight: 700;',
     'color: #7b1fa2; background: white; font-weight: 700;'
   );
