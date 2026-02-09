@@ -34,6 +34,10 @@ Thẻ (custom card) hiển thị **lịch Dương / Âm Việt Nam** theo kiểu
   - Tuỳ chỉnh **độ trong suốt nền**
   - Tuỳ chỉnh **viền** (màu/độ dày/glow)
   - **Tự thích ứng màu** theo theme sáng/tối của Home Assistant
+- **Giao diện trong suốt**
+  <img width="423" height="567" alt="image" src="https://github.com/user-attachments/assets/27c2346c-399b-4c8c-ba0c-5260708c9d91" />
+- **Giao diện normal**
+  <img width="417" height="557" alt="image" src="https://github.com/user-attachments/assets/023e485d-cfeb-4d8b-8459-eae49c4bf066" />
 
 ---
 
