@@ -1,7 +1,7 @@
-// Lịch Âm Dương Việt Nam - Enhanced Version (FIXED - Auto Theme Color)
+// Lịch Âm Dương Việt Nam - Enhanced Version (Custom Multi Color Edition)
 // Phát triển dựa trên code của Nguyễn Tiến Khải
-// Version: 2.3 - February 2026 - FIX Auto color adaptation for light/dark themes
-// Fix: Tự động thích ứng màu chữ với theme sáng/tối của Home Assistant
+// Version: 2.4 - February 2026 - Custom Multi Color Edition
+// New: Tùy chỉnh nhiều nhóm màu riêng + Sunday override
 
 (function () {
   'use strict';
@@ -531,6 +531,35 @@
       this.borderColor = config.border_color || '';
       this.borderWidth = config.border_width || 0;
       this.borderGlow = config.border_glow !== false; // mặc định true
+
+      // ===== v2.4 Multi Color config =====
+      // Hỗ trợ 2 kiểu cấu hình:
+      // 1) key trực tiếp: color_month_year, color_nav_buttons, ...
+      // 2) gom nhóm: colors: { month_year, nav_buttons, ... } hoặc keys cũ (top_year, nav_adjacent, ...)
+      const c = (config && config.colors) ? config.colors : {};
+      const pick = (directKey, groupKey, legacyKey) => (
+        (config && config[directKey]) ||
+        (c && (c[groupKey] || (legacyKey ? c[legacyKey] : ''))) ||
+        ''
+      );
+
+      this.colors = {
+        top_year: pick('color_month_year', 'month_year', 'top_year'),
+        nav_adjacent: pick('color_nav_buttons', 'nav_buttons', 'nav_adjacent'),
+        solar_lunar: pick('color_solar_lunar_date', 'solar_lunar_date', 'solar_lunar'),
+        weekday: pick('color_weekday', 'weekday', 'weekday'),
+        lunar_details: pick('color_lunar_info', 'lunar_info', 'lunar_details'),
+        picker: pick('color_date_picker', 'date_picker', 'picker'),
+        sunday_override: pick('color_sunday_special', 'sunday_special', 'sunday_override'),
+
+        // v2.4 extra: nền header tím + nền/ngữ màu ngày lễ
+        header_background: pick('color_header_background', 'header_background', 'header_background'),
+        festival_background: pick('color_festival_background', 'festival_background', 'festival_background'),
+        festival_text: pick('color_festival_text', 'festival_text', 'festival_text'),
+        // v2.4 quote colors
+        quote_text: pick('color_quote_text', 'quote_text', 'quote_text') || pick('color_quote', 'quote', 'quote'),
+        quote_author: pick('color_quote_author', 'quote_author', 'quote_author'),
+      };
     }
 
     set hass(hass) {
@@ -562,13 +591,54 @@
     }
 
     getQuoteFromSensor() {
+      // Hỗ trợ lấy quote từ input_text/sensor:
+      // - Dạng thường: state = "Câu nói...", attributes.author (nếu có)
+      // - Dạng kèm màu:
+      //   1) "#RRGGBB|Quote text"
+      //   2) "#RRGGBB|Quote text|Author"
+      //   3) "#RRGGBB|#AABBCC|Quote text|Author"
       if (this._hass) {
         const quoteEntity = this._config.quote_entity;
         if (quoteEntity) {
-          const state = this._hass.states[quoteEntity];
-          if (state) return { text: state.state, author: state.attributes.author || '' };
+          const stateObj = this._hass.states[quoteEntity];
+          if (stateObj) {
+            let raw = String(stateObj.state ?? '');
+            let author = String(stateObj.attributes?.author ?? '');
+
+            let qColor = '';
+            let aColor = '';
+
+            if (raw.includes('|')) {
+              const parts = raw.split('|').map(s => s.trim()).filter(s => s.length);
+              if (parts.length >= 2 && parts[0].startsWith('#')) {
+                // #color|quote|author?  OR  #qColor|#aColor|quote|author
+                if (parts.length >= 4 && parts[1].startsWith('#')) {
+                  qColor = parts[0];
+                  aColor = parts[1];
+                  raw = parts[2];
+                  author = parts.slice(3).join(' | ') || author;
+                } else {
+                  qColor = parts[0];
+                  raw = parts[1];
+                  if (parts.length >= 3) author = parts.slice(2).join(' | ') || author;
+                }
+              }
+            }
+
+            // Nếu user không set màu quote trong YAML thì mới lấy từ input_text
+            const container = this.shadowRoot?.querySelector('.container');
+            if (container) {
+              const cfgQ = (this.colors && this.colors.quote_text) ? this.colors.quote_text : '';
+              const cfgA = (this.colors && this.colors.quote_author) ? this.colors.quote_author : '';
+              if (!cfgQ && qColor) container.style.setProperty('--lac-quote-text', qColor);
+              if (!cfgA && (aColor || qColor)) container.style.setProperty('--lac-quote-author', aColor || qColor);
+            }
+
+            return { text: raw, author };
+          }
         }
       }
+
       const day = this.currentDate.getDate();
       const quoteIndex = day % DEFAULT_QUOTES.length;
       return DEFAULT_QUOTES[quoteIndex];
@@ -578,9 +648,12 @@
       const bgOpacity = this.backgroundOpacity;
       const isTransparent = bgOpacity > 0;
       const internalBorderColor = this.getInternalBorderColor(); // THÊM DÒNG NÀY
+      // v2.4: CSS variables for multi color
+      const cv = (k) => (this.colors && this.colors[k]) ? this.colors[k] : '';
+      const varStyle = `--lac-top-year:${cv('top_year')};--lac-nav-adjacent:${cv('nav_adjacent')};--lac-solar-lunar:${cv('solar_lunar')};--lac-weekday:${cv('weekday')};--lac-lunar-details:${cv('lunar_details')};--lac-picker:${cv('picker')};--lac-sunday:${cv('sunday_override')};--lac-header-bg:${cv('header_background')};--lac-festival-bg:${cv('festival_background')};--lac-festival-text:${cv('festival_text')};--lac-quote-text:${cv('quote_text')};--lac-quote-author:${cv('quote_author')};`;
       this.shadowRoot.innerHTML = `
         <style>
-          :host { display:block !important; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; position:relative !important; }
+          :host { display:block !important; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; position:relative !important; --lac-top-year: inherit; --lac-nav-adjacent: inherit; --lac-solar-lunar: inherit; --lac-weekday: inherit; --lac-lunar-details: inherit; --lac-picker: inherit; --lac-sunday: inherit; --lac-header-bg: unset; --lac-festival-bg: unset; --lac-festival-text: unset; --lac-quote-text: unset; --lac-quote-author: unset; }
           * { box-sizing:border-box; margin:0; padding:0; }
 
           .container { max-width:400px; margin:0 auto; position:relative; display:block !important; visibility:visible !important; opacity:1 !important; }
@@ -594,7 +667,7 @@
           }
 
           .calendar-header {
-            background:${isTransparent ? 'rgba(123, 31, 162, 0.3)' : 'linear-gradient(135deg, #7b1fa2, #9c27b0)'};
+            background: var(--lac-header-bg, ${isTransparent ? 'rgba(123, 31, 162, 0.3)' : 'linear-gradient(135deg, #7b1fa2, #9c27b0)'});
             color:white; padding:10px; text-align:center; position:relative;
           }
 
@@ -649,11 +722,13 @@
             display:flex; flex-direction:column; gap:8px;
           }
           .quote-text {
-            font-style:italic; color:${isTransparent ? 'var(--primary-text-color, #333)' : '#333'};
+            font-style:italic;
+            color:${isTransparent ? 'var(--primary-text-color, #333)' : '#333'};
+            color: var(--lac-quote-text, inherit) !important;
             line-height:1.6; font-size:1em; text-align:center;
           }
           .author-section { display:flex; justify-content:flex-end; padding-right:5%; }
-          .quote-author-side { color:${isTransparent ? 'var(--primary-text-color, #7b1fa2)' : '#7b1fa2'}; font-weight:600; font-size:0.7em; text-align:right; }
+          .quote-author-side { color: var(--lac-quote-author, inherit) !important; font-weight:600; font-size:0.7em; text-align:right; }
 
           .weekday-festivals-section {
             padding:8px 12px;
@@ -667,8 +742,8 @@
             justify-content:center; margin-bottom:8px; min-height:40px;
           }
           .festival-item {
-            background:linear-gradient(135deg,#7b1fa2,#9c27b0);
-            color:white; padding:4px 8px; border-radius:12px;
+            background: var(--lac-festival-bg, linear-gradient(135deg,#7b1fa2,#9c27b0));
+            color: var(--lac-festival-text, white); padding:4px 8px; border-radius:12px;
             font-size:0.7em; font-weight:500;
             box-shadow:0 2px 8px rgba(123,31,162,0.3);
           }
@@ -864,9 +939,69 @@
             .author-section { justify-content:center; padding-right:0; }
             .quote-author-side { text-align:center; }
           }
-        </style>
+        
+          /* ===== v2.4 Multi Color overrides ===== */
+          #monthYearVi, #monthYearEn, .year-can-chi { color: var(--lac-top-year, inherit) !important; }
 
-        <div class="container">
+          /* Hôm qua / Ngày mai */
+          #prevDay, #nextDay { color: var(--lac-nav-adjacent, inherit) !important; }
+
+          /* Ngày dương + Ngày âm */
+          .solar-day-large, .lunar-day-large { color: var(--lac-solar-lunar, inherit) !important; }
+
+          /* Thứ */
+          .weekday-en, .weekday-vi { color: var(--lac-weekday, inherit) !important; }
+
+          /* Thông tin âm lịch chi tiết (tháng âm + can chi + giờ hoàng đạo...) */
+          #lunarMonth, #monthCanChi, #dayCanChi, #hourCanChi, #gioHoangDao, #gioHoangDao * {
+            color: var(--lac-lunar-details, inherit) !important;
+          }
+
+          /* Chọn ngày để xem (toggle + popup) */
+          .date-picker-toggle, .date-picker, .date-picker * { color: var(--lac-picker, inherit) !important; }
+
+          /* Chủ nhật: override ngày dương + ngày âm + thứ */
+          .solar-day-large.sunday,
+          .lunar-day-large.sunday,
+          .weekday-en.sunday,
+          .weekday-vi.sunday {
+            color: var(--lac-sunday, var(--lac-solar-lunar, inherit)) !important;
+          }
+
+        
+          /* ===== v2.4 Custom Multi Color overrides (NO layout changes) ===== */
+          .month-year-vi, .month-year-en, .year-can-chi { color: var(--lac-top-year, inherit) !important; }
+
+          .nav-button { color: var(--lac-nav-adjacent, inherit) !important; }
+
+          .solar-day-large, .lunar-day-large { color: var(--lac-solar-lunar, inherit) !important; }
+
+          /* Make Vietnamese/English weekday stroke consistent */
+          .weekday-vi, .weekday-en { color: var(--lac-weekday, inherit) !important; font-weight:700 !important; }
+
+          /* Lunar month + Can Chi + Gio Hoang Dao + labels */
+          .lunar-month-info,
+          .can-chi-info,
+          .can-chi-info span,
+          .label,
+          .gio-list,
+          .label-small { color: var(--lac-lunar-details, inherit) !important; }
+
+          /* Date picker section: title + labels + button */
+          .date-picker-toggle,
+          .date-picker-toggle .toggle-title,
+          .date-input-group label,
+          .goto-btn { color: var(--lac-picker, inherit) !important; }
+
+          /* Sunday special: solar + lunar + weekday share one color */
+          .solar-day-large.sunday,
+          .lunar-day-large.sunday,
+          .weekday-vi.sunday,
+          .weekday-en.sunday { color: var(--lac-sunday, var(--lac-solar-lunar, inherit)) !important; }
+
+</style>
+
+        <div class="container" style="${varStyle}">
           <div class="calendar-bloc">
             <div class="calendar-header">
               <div class="header-controls">
@@ -1209,7 +1344,10 @@
         : '';
 
       $('lunarMonth').textContent = `Tháng ${lunarMonthName} ${monthType}`;
-      $('lunarDay').textContent = lunarDay;
+      const lunarDayEl = $('lunarDay');
+      lunarDayEl.textContent = lunarDay;
+      lunarDayEl.className = 'lunar-day-large';
+      if (dayOfWeek === 0) lunarDayEl.classList.add('sunday');
       $('monthCanChi').textContent = canChiMonth;
       $('dayCanChi').textContent = canChiDay;
       $('hourCanChi').textContent = canChiHour;
@@ -1453,7 +1591,7 @@
 
   // eslint-disable-next-line no-console
   console.info(
-    '%c LỊCH-ÂM-DƯƠNG-CARD %c Version 2.3 - Auto Theme Color ',
+    '%c LỊCH-ÂM-DƯƠNG-CARD %c Version 2.4 - Custom Multi Color Edition ',
     'color: white; background: #7b1fa2; font-weight: 700;',
     'color: #7b1fa2; background: white; font-weight: 700;'
   );
