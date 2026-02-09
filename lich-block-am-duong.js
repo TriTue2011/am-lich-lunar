@@ -162,7 +162,58 @@
     "Chẩn": { tenNgay: "Chẩn Thủy Dẫn", danhGia: "Tốt (Kiết Tú)", tuongTinh: "Tướng tinh con Giun", nenLam: "Xây dựng, gắn cửa, kê gác, chôn cất đều tốt.", kiengCu: "Động thổ, cưới gả không hạp.", ngoaiLe: "Tại Hợi đăng viên tốt nhất.", tho: "Chẩn tinh lâm thủy tạo long cung\nĐại đại vi quan thụ sấm phong" }
   };
 
-  // ===== LUNAR CALCULATION FUNCTIONS =====
+
+  // ===== BỔ SUNG: HÀM GIẢI MÃ DỮ LIỆU TK21/TK22 =====
+  function decodeLunarYear(yy, k) {
+    const monthLengths = [29, 30];
+    const regularMonths = [];
+    const offsetOfTet = k >> 17;
+    const leapMonth = k & 0xf;
+    const leapMonthLength = monthLengths[k >> 16 & 0x1];
+    const solarNY = jdFromDate(1, 1, yy);
+    let currentJD = solarNY + offsetOfTet;
+    let j = k >> 4;
+    
+    for (let i = 0; i < 12; i++) {
+      regularMonths[12 - i - 1] = monthLengths[j & 0x1];
+      j >>= 1;
+    }
+    
+    const ly = [];
+    if (leapMonth === 0) {
+      for (let mm = 1; mm <= 12; mm++) {
+        ly.push({ day: 1, month: mm, year: yy, leap: 0, jd: currentJD, days: regularMonths[mm - 1] });
+        currentJD += regularMonths[mm - 1];
+      }
+    } else {
+      for (let mm = 1; mm <= leapMonth; mm++) {
+        ly.push({ day: 1, month: mm, year: yy, leap: 0, jd: currentJD, days: regularMonths[mm - 1] });
+        currentJD += regularMonths[mm - 1];
+      }
+      ly.push({ day: 1, month: leapMonth, year: yy, leap: 1, jd: currentJD, days: leapMonthLength });
+      currentJD += leapMonthLength;
+      for (let mm = leapMonth + 1; mm <= 12; mm++) {
+        ly.push({ day: 1, month: mm, year: yy, leap: 0, jd: currentJD, days: regularMonths[mm - 1] });
+        currentJD += regularMonths[mm - 1];
+      }
+    }
+    return ly;
+  }
+
+  function getYearInfo(yyyy) {
+    let yearCode;
+    if (yyyy < 1900) {
+      yearCode = TK19[yyyy - 1800];
+    } else if (yyyy < 2000) {
+      yearCode = TK20[yyyy - 1900];
+    } else if (yyyy < 2100) {
+      yearCode = TK21[yyyy - 2000];
+    } else {
+      yearCode = TK22[yyyy - 2100];
+    }
+    return decodeLunarYear(yyyy, yearCode);
+  }
+
   function jdFromDate(dd, mm, yy) {
     const a = INT((14 - mm) / 12);
     const y = yy + 4800 - a;
@@ -239,12 +290,20 @@
     return INT(L / PI * 6);
   }
 
+
+  // ===== HÀM getMonthDays ĐÃ SỬA (sử dụng dữ liệu TK21/TK22) =====
   function getMonthDays(mm, yy) {
-    const off = jdFromDate(1, 1, yy) - 2415021;
-    const k = INT(off / 29.530588853);
-    const nm1 = getNewMoonDay(k + mm - 1, 7);
-    const nm2 = getNewMoonDay(k + mm, 7);
-    return nm2 - nm1;
+    const yearInfo = getYearInfo(yy);
+    
+    // Tìm tháng trong yearInfo (tháng thường, không phải tháng nhuận)
+    for (let i = 0; i < yearInfo.length; i++) {
+      if (yearInfo[i].month === mm && yearInfo[i].leap === 0) {
+        return yearInfo[i].days;
+      }
+    }
+    
+    // Nếu không tìm thấy, trả về 30 (mặc định)
+    return 30;
   }
 
   function convertSolar2Lunar(dd, mm, yy, timeZone) {
