@@ -103,13 +103,117 @@ quote_entity: sensor.daily_quote  # (tuỳ chọn)
 ### Ví dụ nền trong suốt full option
 
 ```yaml
-type: custom:lich-am-duong-card
-background: transparent
-background_opacity: 1
-quote_entity: input_text.daily_quote
-border_color: rgba(255, 140, 0, 0.8)
-border_width: 3
-border_glow: true
+type: custom:lich-am-duong-card   # Tên custom element đã define trong file JS
+
+# ===============================
+# 🎨 NỀN CARD
+# ===============================
+
+background: transparent           # Cho phép nền card trong suốt theo theme HA
+background_opacity: 1             # 0 = không trong, 1 = trong hoàn toàn
+
+# ===============================
+# 📝 QUOTE
+# ===============================
+
+quote_entity: input_text.daily_quote   # Lấy nội dung quote từ entity này
+
+color_quote_text: "#FFAB00"            # Màu nội dung câu quote (.quote-text)
+color_quote_author: "#FFD740"          # Màu tác giả quote (.quote-author)
+
+# ===============================
+# 🟧 BORDER (VIỀN CARD)
+# ===============================
+
+border_color: rgba(255, 145, 0, 1)     # Màu viền ngoài card
+border_width: 4                        # Độ dày viền (px)
+border_glow: true                      # Hiệu ứng phát sáng quanh viền
+
+# ===============================
+# 🟠 THÁNG / NĂM (PHÍA TRÊN)
+# ===============================
+
+color_month_year: "#FF9100"            # Áp vào:
+                                       # - Tháng năm trên cùng
+                                       # - Năm âm (can chi năm)
+
+# ===============================
+# 🔘 NÚT ĐIỀU HƯỚNG
+# ===============================
+
+color_nav_buttons: "#FF6D00"           # Áp vào:
+                                       # - Hôm qua
+                                       # - Hôm nay
+                                       # - Ngày mai
+
+# ===============================
+# 🔢 NGÀY DƯƠNG + NGÀY ÂM (SỐ LỚN)
+# ===============================
+
+color_solar_lunar_date: "#FF3D00"      # Áp vào:
+                                       # - Số ngày dương lớn
+                                       # - Số ngày âm lớn
+
+# ===============================
+# 📅 THỨ (VI + EN)
+# ===============================
+
+color_weekday: "#FFAB00"               # Áp vào:
+                                       # - Thứ tiếng Việt
+                                       # - Thứ tiếng Anh
+
+# ===============================
+# 🌙 THÔNG TIN ÂM LỊCH CHI TIẾT
+# ===============================
+
+color_lunar_info: "#FFC400"            # Áp vào:
+                                       # - Tháng âm
+                                       # - Can Chi tháng
+                                       # - Can Chi ngày
+                                       # - Can Chi giờ
+                                       # - Giờ hoàng đạo
+                                       # - Các label nhỏ liên quan
+
+# ===============================
+# 📆 KHU "CHỌN NGÀY ĐỂ XEM"
+# ===============================
+
+color_date_picker: "#FFD740"           # Áp vào:
+                                       # - Nút "Chọn ngày để xem"
+                                       # - Input chọn ngày
+                                       # - Label
+                                       # - Nút "Xem"
+
+# ===============================
+# 🔴 CHỦ NHẬT ĐẶC BIỆT
+# ===============================
+
+color_sunday_special: "#DD2C00"        # Khi là Chủ Nhật:
+                                       # - Ngày dương
+                                       # - Ngày âm
+                                       # - Thứ
+                                       # → cùng 1 màu override
+
+# ===============================
+# 🟣 NỀN HEADER PHÍA TRÊN
+# ===============================
+
+color_header_background: "linear-gradient(135deg, #4A148C, #7B1FA2)"
+                                       # Nền khu header phía trên
+                                       # Có thể dùng:
+                                       # - #hex
+                                       # - rgba()
+                                       # - linear-gradient()
+
+# ===============================
+# 🎉 NGÀY LỄ
+# ===============================
+
+color_festival_background: "linear-gradient(135deg, #FF6D00, #FF9100)"
+                                       # Nền badge ngày lễ
+
+color_festival_text: "#FFFFFF"         # Màu chữ thông tin ngày lễ
+
 ```
 ### Tùy chọn nâng cao (theo `getStubConfig()`)
 
