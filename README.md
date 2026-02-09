@@ -145,7 +145,7 @@ Thêm đoạn sau vào file configuration.yaml:
 input_text:
   daily_quote:
     name: Daily Quote
-    max: 500
+    max: 255
 ```
 
 Sau đó Restart Home Assistant.
