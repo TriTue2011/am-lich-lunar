@@ -129,12 +129,14 @@ border_glow: true
 
 ### CÁCH 1: TẠO TRONG GIAO DIỆN (KHUYẾN NGHỊ)
 
-Bước 1: Vào Settings → Devices & Services → Helpers
-Bước 2: Nhấn “Create Helper”
-Bước 3: Chọn loại “Text”
-Bước 4: Nhập thông tin: - Name: Daily Quote - Entity ID:
-input_text.daily_quote - Maximum length: 255 hoặc 500
-Bước 5: Nhấn Save
+- Bước 1: **Vào Settings → Devices & Services → Helpers**
+- Bước 2: **Nhấn “Create Helper”**
+- Bước 3: **Chọn loại “Text”**
+- Bước 4: **Nhập thông tin:
+   **Name: Daily Quote**
+   **Maximum length: 255** trong phần cài đặt năng cao
+- Bước 5: Nhấn Save sẽ tạo được
+  **Entity ID: input_text.daily_quote**
 
 
 ### CÁCH 2: KHAI BÁO TRONG configuration.yaml
