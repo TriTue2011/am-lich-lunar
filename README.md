@@ -133,8 +133,7 @@ border_glow: true
 - Bước 2: **Nhấn “Create Helper”**
 - Bước 3: **Chọn loại “Text”**
 - Bước 4: **Nhập thông tin:
-   **Name: Daily Quote**
-   **Maximum length: 255** trong phần cài đặt năng cao
+   **Name: Daily Quote, Maximum length: 255-trong phần cài đặt năng cao**
 - Bước 5: Nhấn Save sẽ tạo được
   **Entity ID: input_text.daily_quote**
 
