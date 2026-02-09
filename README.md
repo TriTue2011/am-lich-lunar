@@ -165,7 +165,7 @@ Sau đó Restart Home Assistant.
 ```yaml
 alias: AI Quote (mỗi 1 giờ)
 description: >-
-  Mỗi 1 giờ lấy 1 câu nói nổi tiếng ngẫu nhiên và cập nhật vào
+  Mỗi time lấy 1 câu nói nổi tiếng ngẫu nhiên và cập nhật vào
   input_text.daily_quote
 triggers:
   - minutes: /20
